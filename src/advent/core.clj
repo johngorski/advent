@@ -43,3 +43,26 @@
   (let [xs (nums s)
         shifted (shift xs)]
     (reduce + 0 (map #(if (= %1 %2) %1 0) xs shifted))))
+
+(defn row-checksum
+  [row]
+  (apply - ((juxt #(apply max %) #(apply min %)) row)))
+
+(defn ss-checksum
+  [rows]
+  (apply + 0 (map row-checksum rows)))
+
+(defn row-div-check
+  [row]
+  (->>
+   (for [a row
+         b row]
+     (sort [a b]))
+   (remove (partial apply =))
+   (filter (fn [[a b]] (= 0 (rem b a))))
+   (map (fn [[a b]] (quot b a)))
+   first))
+
+(defn div-checksum
+  [rows]
+  (apply + 0 (map row-div-check rows)))
