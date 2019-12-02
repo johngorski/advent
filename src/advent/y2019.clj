@@ -95,7 +95,8 @@
   for the program counter (pc) and for the memory itself"
   [{:keys [pc mem]}]
   (let [opcode (get mem pc)]
-    ({1
+    (case opcode
+      1
       {:update-pc #(+ 4 %)
        :update-mem (let [fst (get mem (+ 1 pc))
                          snd (get mem (+ 2 pc))
@@ -110,7 +111,7 @@
       99
       {:update-pc (fn [_] nil)
        :update-mem identity}
-      } opcode)))
+      )))
 
 (defn step
   "One step of our Intcode execution"
