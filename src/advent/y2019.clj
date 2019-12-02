@@ -99,15 +99,15 @@
       1
       {:pc #(+ 4 %)
        :mem (let [fst (get mem (+ 1 pc))
-                         snd (get mem (+ 2 pc))
-                         dst (get mem (+ 3 pc))]
-                     #(assoc % dst (+ (get % fst) (get % snd))))}
+                  snd (get mem (+ 2 pc))
+                  dst (get mem (+ 3 pc))]
+              #(assoc % dst (+ (get % fst) (get % snd))))}
       2
       {:pc #(+ 4 %)
        :mem (let [fst (get mem (+ 1 pc))
-                         snd (get mem (+ 2 pc))
-                         dst (get mem (+ 3 pc))]
-                     #(assoc % dst (* (get % fst) (get % snd))))}
+                  snd (get mem (+ 2 pc))
+                  dst (get mem (+ 3 pc))]
+              #(assoc % dst (* (get % fst) (get % snd))))}
       99
       {:pc (fn [_] nil)
        :mem identity}
@@ -140,18 +140,18 @@
                 (assoc 2 46))})
 
 (comment
-(run-intcode {:pc 0 :mem sample-2})
-(run-intcode {:pc 0 :mem [1,0,0,0,99]})
-(run-intcode {:pc 0 :mem [2,3,0,3,99]})
-(run-intcode {:pc 0 :mem [2,4,4,5,99]})
-(run-intcode {:pc 0 :mem [1,1,1,4,99,5,6,0,99]})
+  (run-intcode {:pc 0 :mem sample-2})
+  (run-intcode {:pc 0 :mem [1,0,0,0,99]})
+  (run-intcode {:pc 0 :mem [2,3,0,3,99]})
+  (run-intcode {:pc 0 :mem [2,4,4,5,99]})
+  (run-intcode {:pc 0 :mem [1,1,1,4,99,5,6,0,99]})
 
-(run-intcode {:pc 0 :mem (-> (vec in-2)
-                             (assoc 1 12)
-                             (assoc 2 2)
-                             )})
+  (run-intcode {:pc 0 :mem (-> (vec in-2)
+                               (assoc 1 12)
+                               (assoc 2 2)
+                               )})
 
-(run-intcode {:pc 0 :mem (-> (vec in-2)
-                             (assoc 1 31)
-                             (assoc 2 46))})
-)
+  (run-intcode {:pc 0 :mem (-> (vec in-2)
+                               (assoc 1 31)
+                               (assoc 2 46))})
+  )
