@@ -81,11 +81,76 @@
 
 (output 12 2)
 (comment
-(->> (for [noun (range 100)
-           verb (range 100)]
-       [noun verb])
-     (filter #(= 19690720 (output (first %) (second %))))
-)
+  (->> (for [noun (range 100)
+             verb (range 100)]
+         [noun verb])
+       (filter #(= 19690720 (output (first %) (second %))))
+       )
 
-[31 46]
+  [31 46]
+  )
+
+(defn decode
+  "Decodes the instruction from the memory pointer, yielding update functions
+  for the program counter (pc) and for the memory itself"
+  [{:keys [pc mem]}]
+  (let [opcode (get mem pc)]
+    ({1
+      {:update-pc #(+ 4 %)
+       :update-mem (let [fst (get mem (+ 1 pc))
+                         snd (get mem (+ 2 pc))
+                         dst (get mem (+ 3 pc))]
+                     #(assoc % dst (+ (get % fst) (get % snd))))}
+      2
+      {:update-pc #(+ 4 %)
+       :update-mem (let [fst (get mem (+ 1 pc))
+                         snd (get mem (+ 2 pc))
+                         dst (get mem (+ 3 pc))]
+                     #(assoc % dst (* (get % fst) (get % snd))))}
+      99
+      {:update-pc (fn [_] nil)
+       :update-mem identity}
+      } opcode)))
+
+(defn step
+  "One step of our Intcode execution"
+  [computer]
+  (let [{:keys [update-pc update-mem]} (decode computer)]
+    (-> computer
+        (update :pc update-pc)
+        (update :mem update-mem))))
+
+(defn run-intcode
+  "Runs Intcode programs, continuously updated starting from the Day 2 puzzle."
+  [computer]
+  (if (:pc computer)
+    (recur (step computer))
+    computer))
+
+(run-intcode {:pc 0 :mem (vec in-2)})
+(run-intcode {:pc 0
+              :mem (-> (vec in-2)
+                       (assoc 1 31)
+                       (assoc 2 46))})
+
+(step {:pc 0
+       :mem (-> (vec in-2)
+                (assoc 1 31)
+                (assoc 2 46))})
+
+(comment
+(run-intcode {:pc 0 :mem sample-2})
+(run-intcode {:pc 0 :mem [1,0,0,0,99]})
+(run-intcode {:pc 0 :mem [2,3,0,3,99]})
+(run-intcode {:pc 0 :mem [2,4,4,5,99]})
+(run-intcode {:pc 0 :mem [1,1,1,4,99,5,6,0,99]})
+
+(run-intcode {:pc 0 :mem (-> (vec in-2)
+                             (assoc 1 12)
+                             (assoc 2 2)
+                             )})
+
+(run-intcode {:pc 0 :mem (-> (vec in-2)
+                             (assoc 1 31)
+                             (assoc 2 46))})
 )
