@@ -66,3 +66,14 @@
 (defn div-checksum
   [rows]
   (apply + 0 (map row-div-check rows)))
+
+(defn manh-origin
+  "2017 Day 3 part 1"
+  [sp-idx]
+  ;; Calculate bottom-right corner from squares of odd numbers
+  ;; Corners are maximum-distance.
+  ;; Minimum-distance are at edge midpoints.
+  ;; Manhattan distance directly interpolates.
+  ;; Each Manhattan ring has perimeter of (* 4 ring-index)
+  ;; Range of Manhattan distance should vary with 1/8 of that.
+  )

@@ -63,3 +63,11 @@
     (is (= 44670 (ss-checksum day2-in)))
     (is (= [4 3 2] (map row-div-check day2-sample-2)))
     (is (= 285 (div-checksum day2-in)))))
+
+(deftest day3
+  (testing "part 1 samples"
+    (is (= 0 (manh-origin 1)))
+    (is (= 3 (manh-origin 12)))
+    (is (= 2 (manh-origin 23)))
+    (is (= 31 (manh-origin 1024)))
+    ))
