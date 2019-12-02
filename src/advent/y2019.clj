@@ -128,17 +128,17 @@
     (recur (step computer))
     computer))
 
+(comment
 (run-intcode {:pc 0 :mem (vec in-2)})
 (run-intcode {:pc 0
               :mem (-> (vec in-2)
                        (assoc 1 31)
                        (assoc 2 46))})
-
 (step {:pc 0
        :mem (-> (vec in-2)
                 (assoc 1 31)
                 (assoc 2 46))})
-
+)
 (comment
   (run-intcode {:pc 0 :mem sample-2})
   (run-intcode {:pc 0 :mem [1,0,0,0,99]})
