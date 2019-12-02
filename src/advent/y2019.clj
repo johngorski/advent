@@ -109,8 +109,7 @@
                   dst (get mem (+ 3 pc))]
               #(assoc % dst (* (get % fst) (get % snd))))}
       99
-      {:pc (fn [_] nil)
-       :mem identity}
+      {:pc (fn [_] nil)}
       )))
 
 (defn step
