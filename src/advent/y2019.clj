@@ -97,29 +97,29 @@
   (let [opcode (get mem pc)]
     (case opcode
       1
-      {:update-pc #(+ 4 %)
-       :update-mem (let [fst (get mem (+ 1 pc))
+      {:pc #(+ 4 %)
+       :mem (let [fst (get mem (+ 1 pc))
                          snd (get mem (+ 2 pc))
                          dst (get mem (+ 3 pc))]
                      #(assoc % dst (+ (get % fst) (get % snd))))}
       2
-      {:update-pc #(+ 4 %)
-       :update-mem (let [fst (get mem (+ 1 pc))
+      {:pc #(+ 4 %)
+       :mem (let [fst (get mem (+ 1 pc))
                          snd (get mem (+ 2 pc))
                          dst (get mem (+ 3 pc))]
                      #(assoc % dst (* (get % fst) (get % snd))))}
       99
-      {:update-pc (fn [_] nil)
-       :update-mem identity}
+      {:pc (fn [_] nil)
+       :mem identity}
       )))
 
 (defn step
   "One step of our Intcode execution"
   [computer]
-  (let [{:keys [update-pc update-mem]} (decode computer)]
-    (-> computer
-        (update :pc update-pc)
-        (update :mem update-mem))))
+  (reduce
+   (fn [state [component updater]] (update state component updater))
+   computer
+   (decode computer)))
 
 (defn run-intcode
   "Runs Intcode programs, continuously updated starting from the Day 2 puzzle."
