@@ -158,7 +158,65 @@
   )
 
 ;; TODO: Day 3
+(def sample-wire "R8,U5,L5,D3")
+(defn wire-segments [wire] (string/split wire #","))
 
+(comment (wire-segments sample-wire))
+
+(defn segment-effect [segment]
+  (let [mag     (edn/read-string (subs segment 1))
+        stepper (case (first segment)
+                  \L #(update % 0 dec)
+                  \U #(update % 1 inc)
+                  \R #(update % 0 inc)
+                  \D #(update % 1 dec))]
+    (repeat mag stepper)))
+
+((apply comp (segment-effect "R5")) [0 0])
+
+(comment
+(reductions (fn [point step] (step point)) [0 0] (segment-effect "R5"))
+)
+
+(defn wire-points [wire]
+  (reductions
+   (fn [point step] (step point))
+   [0 0]
+   (mapcat segment-effect (wire-segments wire))))
+
+(comment
+  (wire-points sample-wire)
+  )
+
+(defn wire-crossings
+  "Crossings between wire a and wire b, not counting the origin."
+  [a b]
+  (filter (into #{} (remove (partial = [0 0]) (wire-points a))) (wire-points b)))
+
+(comment
+  (wire-crossings "R8,U5,L5,D3" "U7,R6,D4,L4")
+  )
+
+(defn abs [n] (max n (- n)))
+
+(defn manhattan-distance [point] (reduce + (map abs point)))
+
+(comment
+  (manhattan-distance [3 -4])
+  )
+
+(def in-3 (string/split (slurp (io/resource "2019/3.txt")) #"\n"))
+
+(comment
+(let [[a b] in-3]
+  (->> (wire-crossings a b)
+       (map manhattan-distance)
+       (apply min)))
+)
+;; 245
+
+
+;; Day 4
 (def in-4 [235741 706948])
 
 (defn digits
@@ -179,11 +237,12 @@
   (let [ds (digits num)]
     (some (partial apply =) (partition 2 1 ds))))
 
+(comment
 (has-same-adjacent? 111111)
 (has-same-adjacent? 223450)
 (has-same-adjacent? 123789)
-
 (<= 1 1 1 1)
+)
 
 (defn digits-never-decrease? [num]
   (apply <= (digits num)))
