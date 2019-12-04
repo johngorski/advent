@@ -128,16 +128,16 @@
     computer))
 
 (comment
-(run-intcode {:pc 0 :mem (vec in-2)})
-(run-intcode {:pc 0
-              :mem (-> (vec in-2)
-                       (assoc 1 31)
-                       (assoc 2 46))})
-(step {:pc 0
-       :mem (-> (vec in-2)
-                (assoc 1 31)
-                (assoc 2 46))})
-)
+  (run-intcode {:pc 0 :mem (vec in-2)})
+  (run-intcode {:pc 0
+                :mem (-> (vec in-2)
+                         (assoc 1 31)
+                         (assoc 2 46))})
+  (step {:pc 0
+         :mem (-> (vec in-2)
+                  (assoc 1 31)
+                  (assoc 2 46))})
+  )
 (comment
   (run-intcode {:pc 0 :mem sample-2})
   (run-intcode {:pc 0 :mem [1,0,0,0,99]})
@@ -154,3 +154,72 @@
                                (assoc 1 31)
                                (assoc 2 46))})
   )
+
+;; TODO: Day 3
+
+(def in-4 [235741 706948])
+
+(defn digits
+  [num]
+  (map edn/read-string (-> num str (string/split #""))))
+
+(comment
+  (digits 123456) ;; should be [1 2 3 4 5 6]
+  )
+
+(comment
+  (partition 2 1 [1 2 3 4])
+  )
+
+(defn has-same-adjacent?
+  "whether two adjacent digits in the number are the same"
+  [num]
+  (let [ds (digits num)]
+    (some (partial apply =) (partition 2 1 ds))))
+
+(has-same-adjacent? 111111)
+(has-same-adjacent? 223450)
+(has-same-adjacent? 123789)
+
+(<= 1 1 1 1)
+
+(defn digits-never-decrease? [num]
+  (apply <= (digits num)))
+
+(comment
+(digits-never-decrease? 111111)
+(digits-never-decrease? 223450)
+(digits-never-decrease? 123789)
+)
+
+(defn potential-password?
+  "Could it match a potential password from day 4, part 1?"
+  [num]
+  ((every-pred #(some (partial apply =) (partition 2 1 %)) ;; has-same-adjacent?
+               (partial apply <=)) ;; digits-never-decrease?
+   (digits num)))
+
+(comment
+(count (filter potential-password? (range (first in-4) (inc (second in-4)))))
+)
+;; 1178
+
+(defn no-triples? [ds]
+  (not (some (partial apply =) (partition 3 1 ds))))
+
+(comment
+(no-triples? (digits 112233))
+(no-triples? (digits 123444))
+(no-triples? (digits 111122)) ;; no-triples? isn't what we want, since 22 should pass this
+)
+
+(re-find #"[^1]11[^1]" (str 111122))
+(re-find #"[^2]22[^2]" (str 111122))
+(re-find #"2" (str 2222))
+
+(def narrower-potential-password?
+  (every-pred #(some (partial apply =) (partition 2 1 %)) ;; has-same-adjacent?
+              (partial apply <=)
+              no-triples?))
+  
+(partition 4 1 [1 2 3 4 5 6])
