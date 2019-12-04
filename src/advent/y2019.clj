@@ -79,7 +79,9 @@
                   ))
    [:memory 0]))
 
-(output 12 2)
+(comment
+  (output 12 2)
+  )
 (comment
   (->> (for [noun (range 100)
              verb (range 100)]
@@ -212,14 +214,27 @@
 (no-triples? (digits 123444))
 (no-triples? (digits 111122)) ;; no-triples? isn't what we want, since 22 should pass this
 )
-
+(comment
 (re-find #"[^1]11[^1]" (str 111122))
-(re-find #"[^2]22[^2]" (str 111122))
+(re-find #"(^|[^2])22([^2]|$)" (str 111122))
 (re-find #"2" (str 2222))
+)
 
-(def narrower-potential-password?
-  (every-pred #(some (partial apply =) (partition 2 1 %)) ;; has-same-adjacent?
-              (partial apply <=)
-              no-triples?))
-  
-(partition 4 1 [1 2 3 4 5 6])
+(defn exactly-two
+  "regex with exactly two of the given digits"
+  [d]
+  (re-pattern (str "(^|[^" d "])" d d "([^" d "]|$)")))
+
+(defn has-double? [num]
+  ((apply some-fn (map #(partial re-find %) (map exactly-two (range 10)))) (str num)))
+
+(comment
+(has-double? 112233)
+(has-double? 123444)
+(has-double? 111122)
+)
+
+(comment
+(count (filter has-double? (filter potential-password? (range (first in-4) (inc (second in-4))))))
+)
+;; 763
