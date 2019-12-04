@@ -157,7 +157,7 @@
                                (assoc 2 46))})
   )
 
-;; TODO: Day 3
+;; Day 3
 (def sample-wire "R8,U5,L5,D3")
 (defn wire-segments [wire] (string/split wire #","))
 
@@ -215,6 +215,23 @@
 )
 ;; 245
 
+(defn steps-to
+  "Number of steps it takes to traverse from the origin to the given point"
+  [point wire]
+  (count (take-while #(not= % point) (wire-points wire))))
+
+(comment
+(steps-to [5 0] "R10")
+(steps-to [-3 4] "L3,U10,R20")
+)
+
+(comment
+(let [[a b] in-3]
+  (->> (wire-crossings a b)
+       (map #(+ (steps-to % a) (steps-to % b)))
+       (apply min)))
+)
+;; 48262
 
 ;; Day 4
 (def in-4 [235741 706948])
