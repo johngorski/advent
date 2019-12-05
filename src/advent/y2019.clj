@@ -92,27 +92,52 @@
   [31 46]
   )
 
+(comment
+  (reduce-kv #(assoc %1 %2 %3) [0 0 0] [1 1])
+  (vec (repeat 3 identity))
+)
+
 (defn decode
   "Decodes the instruction from the memory pointer, yielding update functions
   for the program counter (pc) and for the memory itself"
-  [{:keys [pc mem]}]
-  (let [opcode (get mem pc)]
+  [{:keys [pc mem input]}]
+  (let [op     (get mem pc)
+        opcode (rem op 100)
+        deref  #(get mem %)
+        modes  (reduce-kv
+                #(assoc %1 %2 %3)
+                (vec (repeat 3 deref))
+                (vec
+                 (map #(case %
+                         \0 deref
+                         \1 identity)
+                      (reverse (seq (str (quot op 100)))))))]
     (case opcode
-      1
+      1 ;; add
       {:pc #(+ 4 %)
        :mem (let [fst (get mem (+ 1 pc))
                   snd (get mem (+ 2 pc))
                   dst (get mem (+ 3 pc))]
-              #(assoc % dst (+ (get % fst) (get % snd))))}
-      2
+              #(assoc % dst (+ ((get modes 0) fst) ((get modes 1) snd))))}
+      2 ;; multiply
       {:pc #(+ 4 %)
        :mem (let [fst (get mem (+ 1 pc))
                   snd (get mem (+ 2 pc))
                   dst (get mem (+ 3 pc))]
-              #(assoc % dst (* (get % fst) (get % snd))))}
+              #(assoc % dst (* ((get modes 0) fst) ((get modes 1) snd))))}
+      3 ;; store from input
+      (let [[first-input & rest-input] input]
+        {:pc #(+ 2 %)
+         :mem (let [fst (get mem (inc pc))]
+                #(assoc % fst first-input))
+         :input (fn [_] rest-input)})
+      4 ;; output
+      {:pc #(+ 2 %)
+       :output (let [fst (get mem (inc pc))]
+                 #(conj (or % []) ((get modes 0) fst)))}
       99
-      {:pc (fn [_] nil)}
-      )))
+      {:pc (fn [_] nil)})))
+
 
 (defn step
   "One step of our Intcode execution"
@@ -128,6 +153,17 @@
   (if (:pc computer)
     (recur (step computer))
     computer))
+
+(def in-5 (vec (map edn/read-string (string/split (slurp (io/resource "2019/5.txt")) #","))))
+
+;; Day 5
+(comment
+(run-intcode {:pc 0 :mem [3,0,4,0,99] :input [69]}) ;; nice
+(run-intcode {:pc 0 :mem [1002,4,3,4,33]})
+(:output (run-intcode {:pc 0, :input [1], :mem in-5}))
+)
+;; 13087969
+;; end day 5
 
 (comment
   (run-intcode {:pc 0 :mem (vec in-2)})
@@ -172,11 +208,10 @@
                   \D #(update % 1 dec))]
     (repeat mag stepper)))
 
-((apply comp (segment-effect "R5")) [0 0])
-
 (comment
-(reductions (fn [point step] (step point)) [0 0] (segment-effect "R5"))
-)
+  ((apply comp (segment-effect "R5")) [0 0])
+  (reductions (fn [point step] (step point)) [0 0] (segment-effect "R5"))
+  )
 
 (defn wire-points [wire]
   (reductions
@@ -208,11 +243,11 @@
 (def in-3 (string/split (slurp (io/resource "2019/3.txt")) #"\n"))
 
 (comment
-(let [[a b] in-3]
-  (->> (wire-crossings a b)
-       (map manhattan-distance)
-       (apply min)))
-)
+  (let [[a b] in-3]
+    (->> (wire-crossings a b)
+         (map manhattan-distance)
+         (apply min)))
+  )
 ;; 245
 
 (defn steps-to
@@ -221,16 +256,16 @@
   (count (take-while #(not= % point) (wire-points wire))))
 
 (comment
-(steps-to [5 0] "R10")
-(steps-to [-3 4] "L3,U10,R20")
-)
+  (steps-to [5 0] "R10")
+  (steps-to [-3 4] "L3,U10,R20")
+  )
 
 (comment
-(let [[a b] in-3]
-  (->> (wire-crossings a b)
-       (map #(+ (steps-to % a) (steps-to % b)))
-       (apply min)))
-)
+  (let [[a b] in-3]
+    (->> (wire-crossings a b)
+         (map #(+ (steps-to % a) (steps-to % b)))
+         (apply min)))
+  )
 ;; 48262
 
 ;; Day 4
@@ -255,20 +290,20 @@
     (some (partial apply =) (partition 2 1 ds))))
 
 (comment
-(has-same-adjacent? 111111)
-(has-same-adjacent? 223450)
-(has-same-adjacent? 123789)
-(<= 1 1 1 1)
-)
+  (has-same-adjacent? 111111)
+  (has-same-adjacent? 223450)
+  (has-same-adjacent? 123789)
+  (<= 1 1 1 1)
+  )
 
 (defn digits-never-decrease? [num]
   (apply <= (digits num)))
 
 (comment
-(digits-never-decrease? 111111)
-(digits-never-decrease? 223450)
-(digits-never-decrease? 123789)
-)
+  (digits-never-decrease? 111111)
+  (digits-never-decrease? 223450)
+  (digits-never-decrease? 123789)
+  )
 
 (defn potential-password?
   "Could it match a potential password from day 4, part 1?"
@@ -278,23 +313,23 @@
    (digits num)))
 
 (comment
-(count (filter potential-password? (range (first in-4) (inc (second in-4)))))
-)
+  (count (filter potential-password? (range (first in-4) (inc (second in-4)))))
+  )
 ;; 1178
 
 (defn no-triples? [ds]
   (not (some (partial apply =) (partition 3 1 ds))))
 
 (comment
-(no-triples? (digits 112233))
-(no-triples? (digits 123444))
-(no-triples? (digits 111122)) ;; no-triples? isn't what we want, since 22 should pass this
-)
+  (no-triples? (digits 112233))
+  (no-triples? (digits 123444))
+  (no-triples? (digits 111122)) ;; no-triples? isn't what we want, since 22 should pass this
+  )
 (comment
-(re-find #"[^1]11[^1]" (str 111122))
-(re-find #"(^|[^2])22([^2]|$)" (str 111122))
-(re-find #"2" (str 2222))
-)
+  (re-find #"[^1]11[^1]" (str 111122))
+  (re-find #"(^|[^2])22([^2]|$)" (str 111122))
+  (re-find #"2" (str 2222))
+  )
 
 (defn exactly-two
   "regex with exactly two of the given digits"
@@ -305,12 +340,12 @@
   ((apply some-fn (map #(partial re-find %) (map exactly-two (range 10)))) (str num)))
 
 (comment
-(has-double? 112233)
-(has-double? 123444)
-(has-double? 111122)
-)
+  (has-double? 112233)
+  (has-double? 123444)
+  (has-double? 111122)
+  )
 
 (comment
-(count (filter has-double? (filter potential-password? (range (first in-4) (inc (second in-4))))))
-)
+  (count (filter has-double? (filter potential-password? (range (first in-4) (inc (second in-4))))))
+  )
 ;; 763
