@@ -93,9 +93,9 @@
   )
 
 (comment
-  (reduce-kv #(assoc %1 %2 %3) [0 0 0] [1 1])
+  (reduce-kv #(assoc %1 %2 %3) [0 0 0] [1 0 1])
   (vec (repeat 3 identity))
-)
+  )
 
 (defn decode
   "Decodes the instruction from the memory pointer, yielding update functions
@@ -135,9 +135,32 @@
       {:pc #(+ 2 %)
        :output (let [fst (get mem (inc pc))]
                  #(conj (or % []) ((get modes 0) fst)))}
+      5 ;; jump-if-true
+      {:pc (let [fst ((get modes 0) (deref (+ 1 pc)))
+                 snd ((get modes 1) (deref (+ 2 pc)))]
+             #(if (not= 0 fst)
+                snd
+                (+ 3 %)))}
+      6 ;; jump-if-false
+      {:pc (let [fst ((get modes 0) (deref (+ 1 pc)))
+                 snd ((get modes 1) (deref (+ 2 pc)))]
+             #(if (= 0 fst)
+                snd
+                (+ 3 %)))}
+      7 ;; less than
+      {:pc #(+ 4 %)
+       :mem #(let [fst ((get modes 0) (deref (+ 1 pc)))
+                   snd ((get modes 1) (deref (+ 2 pc)))
+                   dst (deref (+ 3 pc))]
+               (assoc % dst (if (< fst snd) 1 0)))}
+      8 ;; equals
+      {:pc #(+ 4 %)
+       :mem #(let [fst ((get modes 0) (deref (+ 1 pc)))
+                   snd ((get modes 1) (deref (+ 2 pc)))
+                   dst (deref (+ 3 pc))]
+               (assoc % dst (if (= fst snd) 1 0)))}
       99
       {:pc (fn [_] nil)})))
-
 
 (defn step
   "One step of our Intcode execution"
@@ -158,11 +181,22 @@
 
 ;; Day 5
 (comment
-(run-intcode {:pc 0 :mem [3,0,4,0,99] :input [69]}) ;; nice
-(run-intcode {:pc 0 :mem [1002,4,3,4,33]})
-(:output (run-intcode {:pc 0, :input [1], :mem in-5}))
-)
+  (run-intcode {:pc 0 :mem [3,0,4,0,99] :input [69]}) ;; nice
+  (run-intcode {:pc 0 :mem [1002,4,3,4,33]})
+  (:output (run-intcode {:pc 0, :input [1], :mem in-5}))
+  )
 ;; 13087969
+
+(:output (run-intcode {:pc 0, :mem [3,9,8,9,10,9,4,9,99,-1,8], :input [8]}))
+(run-intcode {:pc 0, :mem [3,9,8,9,10,9,4,9,99,-1,8], :input [8]})
+(:output (run-intcode {:pc 0, :mem [3,9,8,9,10,9,4,9,99,-1,8], :input [7]}))
+(run-intcode {:pc 0, :mem [3,9,8,9,10,9,4,9,99,-1,8], :input [7]})
+
+
+(comment
+  (:output (run-intcode {:pc 0, :input [5], :mem in-5}))
+  ;; 14110739
+  )
 ;; end day 5
 
 (comment
