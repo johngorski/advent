@@ -128,7 +128,7 @@
                    dst (deref (+ 3 pc))]
                (assoc % dst (if (= fst snd) 1 0)))}
       99
-      {:pc (fn [_] nil)})))
+      {:halted (fn [_] true)})))
 
 (defn step
   "One step of our Intcode execution"
@@ -141,7 +141,7 @@
 (defn run-intcode
   "Runs Intcode programs, continuously updated starting from the Day 2 puzzle."
   [computer]
-  (if (:pc computer)
+  (if-not (:halted computer)
     (recur (step computer))
     computer))
 
