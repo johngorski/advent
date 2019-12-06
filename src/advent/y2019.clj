@@ -2,6 +2,7 @@
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
+   [clojure.set :as set]
    [clojure.string :as string]))
 
 (defn fuel [mass]
@@ -383,3 +384,82 @@
   (count (filter has-double? (filter potential-password? (range (first in-4) (inc (second in-4))))))
   )
 ;; 763
+
+;; Day 6
+(defn parse-orbit [s]
+  (->> (string/split s #"\n")
+       (map #(string/split % #"\)"))
+       (map (fn [[orbitee orbiter]] [orbiter orbitee]))
+       (into {})))
+
+(comment
+(parse-orbit "C)D") ;; => ["C" "D"] -- "D orbits C"
+)
+
+(def sample-6 "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L")
+
+(comment
+(parse-orbit sample-6)
+
+(let [sample (parse-orbit sample-6)]
+  (count (sort (into #{} (concat (keys sample) (vals sample))))))
+)
+
+(defn planets-in-map [m]
+  (into #{} (concat (keys m) (vals m))))
+
+(count (planets-in-map (parse-orbit sample-6)))
+
+(defn orbits-for [planet m]
+  (take-while some? (iterate #(get m %) planet)))
+
+(orbits-for "F" (parse-orbit sample-6))
+
+(defn orbits-in [m]
+  (reduce
+   +
+   (for [planet (planets-in-map m)]
+     (dec (count (orbits-for planet m))))))
+
+(orbits-in (parse-orbit sample-6))
+
+(def in-6 (slurp (io/resource "2019/6.txt")))
+
+(orbits-in (parse-orbit in-6)) ;; 110190
+
+(def day-6-planet-map (parse-orbit in-6))
+
+;; transfers will be the magnitude of the disjoint union of our paths
+
+(defn transfers-to-santa [m]
+  (let [you-planets (into #{} (drop 1 (orbits-for "YOU" m)))
+        san-planets (into #{} (drop 1 (orbits-for "SAN" m)))]
+    (count (set/difference (set/union you-planets san-planets) (set/intersection you-planets san-planets)))))
+(def sample-6-2 "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN")
+
+(transfers-to-santa (parse-orbit sample-6-2)) ;; => 4
+
+(transfers-to-santa day-6-planet-map)
+
