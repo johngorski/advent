@@ -418,10 +418,12 @@ K)L")
 (defn planets-in-map [m]
   (into #{} (concat (keys m) (vals m))))
 
+(comment
 (count (planets-in-map (parse-orbit sample-6)))
+)
 
 (defn orbits-for [planet m]
-  (take-while some? (iterate #(get m %) planet)))
+  (take-while some? (iterate #(get m %) (get m planet))))
 
 (orbits-for "F" (parse-orbit sample-6))
 
@@ -429,9 +431,9 @@ K)L")
   (reduce
    +
    (for [planet (planets-in-map m)]
-     (dec (count (orbits-for planet m))))))
+     (count (orbits-for planet m)))))
 
-(orbits-in (parse-orbit sample-6))
+(orbits-in (parse-orbit sample-6)) ;; => 4
 
 (def in-6 (slurp (io/resource "2019/6.txt")))
 
@@ -442,9 +444,12 @@ K)L")
 ;; transfers will be the magnitude of the disjoint union of our paths
 
 (defn transfers-to-santa [m]
-  (let [you-planets (into #{} (drop 1 (orbits-for "YOU" m)))
-        san-planets (into #{} (drop 1 (orbits-for "SAN" m)))]
-    (count (set/difference (set/union you-planets san-planets) (set/intersection you-planets san-planets)))))
+  (let [you-planets (into #{} (orbits-for "YOU" m))
+        san-planets (into #{} (orbits-for "SAN" m))]
+    (count (set/difference
+            (set/union you-planets san-planets)
+            (set/intersection you-planets san-planets)))))
+
 (def sample-6-2 "COM)B
 B)C
 C)D
@@ -461,5 +466,5 @@ I)SAN")
 
 (transfers-to-santa (parse-orbit sample-6-2)) ;; => 4
 
-(transfers-to-santa day-6-planet-map)
+(transfers-to-santa day-6-planet-map) ;; => 343
 
