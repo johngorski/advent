@@ -42,14 +42,21 @@
     (is (= 9801 (last (:mem (run-intcode {:pc 0 :mem [2,4,4,5,99]})))))
     (is (= [30,1,1,4,2,5,6,0,99] (:mem (run-intcode {:pc 0 :mem [1,1,1,4,99,5,6,0,99]}))))))
   (testing "day 2 part 2's solution computes"
-    (is (= 8017076 (first (:mem (run-intcode {:pc 0 :mem (-> (vec in-2)
+    (is (= 8017076 (first (:mem (run-intcode {:pc 0 :mem (-> (vec y2019/in-2)
                                (assoc 1 12)
                                (assoc 2 2)
                                )})))))
-    (is (= 19690720 (first (:mem (run-intcode {:pc 0 :mem (-> (vec in-2) (assoc 1 31) (assoc 2 46))}))))))
+    (is (= 19690720 (first (:mem (run-intcode {:pc 0 :mem (-> (vec y2019/in-2) (assoc 1 31) (assoc 2 46))}))))))
   (testing "Day 5 still works"
     (testing "passes day 5"
-    (is (= 13087969 (last (:output (run-intcode {:pc 0, :input [1], :mem in-5})))))
-    (is (= 14110739 (first (:output (run-intcode {:pc 0, :input [5], :mem in-5})))))))
+    (is (= 13087969 (last (:output (run-intcode {:pc 0, :input [1], :mem y2019/in-5})))))
+    (is (= 14110739 (first (:output (run-intcode {:pc 0, :input [5], :mem y2019/in-5})))))))
   (testing "Day 7 still works"
-    ))
+    (is (= 43210 (y2019/thrust-from [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0] [4,3,2,1,0])))
+    (is (= 54321 (y2019/thrust-from [3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0] [0,1,2,3,4])))
+    (is (= 65210 (y2019/thrust-from [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
+                                     1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0] [1,0,4,3,2])))
+    (is (= 37230 (y2019/thrust-from y2019/in-7 [0 1 2 3 4])))
+    (is (= 139629729 (y2019/thrust-from-amp-loop (:mem y2019/sample-7-2) (:phases y2019/sample-7-2))))
+    (is (= 18216 (y2019/thrust-from-amp-loop [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10] [9,7,8,5,6])))
+    (is (= 17519904 (y2019/soln-day-7-part-2)))))

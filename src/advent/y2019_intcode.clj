@@ -87,6 +87,3 @@
   (if-not (:halted computer)
     (recur (step computer))
     computer))
-
-(def in-2 (map edn/read-string (string/split (slurp (io/resource "2019/2.txt")) #",")))
-(def in-5 (vec (map edn/read-string (string/split (slurp (io/resource "2019/5.txt")) #","))))
