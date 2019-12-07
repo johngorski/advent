@@ -76,14 +76,11 @@
 (defn step
   "One step of our Intcode execution"
   [computer]
-  (reduce
-   (fn [state [component updater]] (update state component updater))
-   computer
-   (decode computer)))
+  (reduce (fn [state [component updater]] (update state component updater))
+          computer
+          (decode computer)))
 
 (defn run-intcode
-  "Runs Intcode programs, continuously updated starting from the Day 2 puzzle."
+  "Runs Intcode computers from the given state, returning the state in which it halts."
   [computer]
-  (if-not (:halted computer)
-    (recur (step computer))
-    computer))
+  (first (filter :halted (iterate step computer))))
