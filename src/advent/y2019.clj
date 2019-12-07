@@ -1,5 +1,6 @@
 (ns advent.y2019
   (:require
+   [advent.y2019-intcode :as computer]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.set :as set]
@@ -464,7 +465,75 @@ K)L
 K)YOU
 I)SAN")
 
+(comment
 (transfers-to-santa (parse-orbit sample-6-2)) ;; => 4
 
 (transfers-to-santa day-6-planet-map) ;; => 343
+)
 
+(def in-7 (vec (map edn/read-string (string/split (slurp (io/resource "2019/7.txt")) #","))))
+(def cold-amplifier {:pc 0 :mem in-7})
+
+(defn phased-amplifier [phase] (assoc cold-amplifier :input [phase]))
+
+(defn amplifier-runner [amplifier]
+  (fn [input] (computer/run-intcode (update amplifier conj input))))
+
+(defn mem->computer [mem] {:pc 0 :mem mem})
+
+(defn phased [phase cpu] (assoc cpu :input [phase]))
+
+(defn amp-runner [amp] (fn [input] (first (:output (computer/run-intcode (update amp :input conj input))))))
+
+(defn thrust-from [mem phases]
+  (let [cpu     (mem->computer mem)
+        amps    (map #(phased % cpu) phases)
+        runners (map amp-runner amps)]
+    (reduce #(%2 %1) 0 runners)))
+
+(def mem [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
+(def phases [4,3,2,1,0])
+
+(mem->computer mem)
+(map #(phased % (mem->computer mem)) phases)
+(def an-amp (first (map #(phased % (mem->computer mem)) phases)))
+(update an-amp :input conj 0)
+
+(map amp-runner (map #(phased % (mem->computer mem)) phases))
+(def a-runner (first (map amp-runner (map #(phased % (mem->computer mem)) phases))))
+(a-runner 0)
+(thrust-from [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0] [4,3,2,1,0]) ;; => 43210
+(thrust-from [3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0] [0,1,2,3,4]) ;; => 54321
+(thrust-from [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
+1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0] [1,0,4,3,2]) ;; => 65210
+
+;; (thrust-from in-7 [0 1 2 3 4])
+
+(disj #{1} 1)
+(disj #{1} 0)
+(first #{1})
+
+(comment ;; Nope, that one's weird. Figure it out later.
+(defn permutations [head set-of-things]
+  (if (empty? set-of-things)
+    [head]
+    (map #(permutations (conj head %) (disj set-of-things %)) set-of-things)))
+)
+
+(concat [1 2] [3 4])
+
+(defn permutations [head set-of-things]
+  (if (empty? set-of-things)
+    [head]
+    (let [next-args (map (fn [h] [(conj head h) (disj set-of-things h)]) set-of-things)]
+      (mapcat #(apply permutations %) next-args))))
+    
+(permutations [:head] #{1 2 3})
+(permutations [1] #{})
+(permutations [] #{1})
+(permutations [1 2] #{3})
+(permutations [1] #{2 3})
+
+(permutations [] (into #{} (range 5)))
+
+()
