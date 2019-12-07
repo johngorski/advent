@@ -548,6 +548,20 @@ I)SAN")
 ;; if it's awaiting input, add it to the end of the list (minus its output and :halted state)
 
 (concat [1 2] [3 4])
+(concat [1 2] nil)
+(concat () [1])
+
+(defn run-amp-segment [prev-out amp]
+  (let [advanced (-> amp
+                     (update :input #(concat % prev-out))
+                     computer/run-intcode)]
+    [(:output advanced) (dissoc advanced :output)]))
+
+(def sample-7-2
+  {:mem [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]
+   :phases [9,8,7,6,5]})
+
+(run-amp-segment [0] (phased (first (:phases sample-7-2)) (mem->computer (:mem sample-7-2))))
 
 (defn amp-loop-runner [previous-output [head-amp & tail-amps] last-amp-label]
   (when head-amp
@@ -571,14 +585,16 @@ I)SAN")
 (empty? nil)
 (defn thrust-from-amp-loop [mem phases]
   (let [n-amps  (count phases)
-        cpus    (labeled n-amps (assoc (mem->computer mem) :output []))
+        cpus    (labeled n-amps (mem->computer mem))
         last-label (dec n-amps)
         amps    (map phased phases cpus)]
+    ;;(map #(dissoc % :mem) amps)))
+    ;; amps))
     ;; (first amps)))
     ;; [[0] (map #(dissoc % :label :input) amps) last-label]))
     (amp-loop-runner [0] amps last-label)))
 
 (comment
-(thrust-from-amp-loop [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5] [9,8,7,6,5]) ;; => 139629729
+(thrust-from-amp-loop (:mem sample-7-2) (:phases sample-7-2)) ;; => 139629729
 
 )
