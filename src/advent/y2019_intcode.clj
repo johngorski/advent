@@ -9,6 +9,7 @@
   for the program counter (pc) and for the memory itself"
   [{:keys [pc mem input]}]
   (let [deref  #(get mem %)
+        =>     (fn [lifted] (fn [_] lifted))
         op     (deref pc)
         opcode (rem op 100)
         modes  (reduce-kv
@@ -34,12 +35,12 @@
               #(assoc % dst (* ((get modes 0) fst) ((get modes 1) snd))))}
       3 ;; store from input
       (if (empty? input)
-        {:halted (fn [_] :awaiting-input)}
+        {:halted (=> :awaiting-input)}
         (let [[first-input & rest-input] input]
           {:pc #(+ 2 %)
            :mem (let [fst (deref (inc pc))]
                   #(assoc % fst first-input))
-           :input (fn [_] rest-input)}))
+           :input (=> rest-input)}))
       4 ;; output
       {:pc #(+ 2 %)
        :output (let [fst (deref (inc pc))]
@@ -69,9 +70,9 @@
                    dst (deref (+ 3 pc))]
                (assoc % dst (if (= fst snd) 1 0)))}
       99
-      {:halted (fn [_] :finished)}
+      {:halted (=> :finished)}
       ;; fault
-      {:halted (fn [_] :fault)})))
+      {:halted (=> :fault)})))
 
 (defn step
   "One step of our Intcode execution"
