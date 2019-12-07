@@ -483,7 +483,9 @@ I)SAN")
 
 (defn phased [phase cpu] (assoc cpu :input [phase]))
 
-(defn amp-runner [amp] (fn [input] (first (:output (computer/run-intcode (update amp :input conj input))))))
+(defn amp-runner [amp]
+  (fn [input]
+    (first (:output (computer/run-intcode (update amp :input conj input))))))
 
 (defn thrust-from [mem phases]
   (let [cpu     (mem->computer mem)
@@ -513,20 +515,12 @@ I)SAN")
 (disj #{1} 0)
 (first #{1})
 
-(comment ;; Nope, that one's weird. Figure it out later.
-(defn permutations [head set-of-things]
-  (if (empty? set-of-things)
-    [head]
-    (map #(permutations (conj head %) (disj set-of-things %)) set-of-things)))
-)
-
 (concat [1 2] [3 4])
 
 (defn permutations [head set-of-things]
   (if (empty? set-of-things)
     [head]
-    (let [next-args (map (fn [h] [(conj head h) (disj set-of-things h)]) set-of-things)]
-      (mapcat #(apply permutations %) next-args))))
+    (mapcat #(permutations (conj head %) (disj set-of-things %)) set-of-things)))
     
 (permutations [:head] #{1 2 3})
 (permutations [1] #{})
@@ -536,4 +530,55 @@ I)SAN")
 
 (permutations [] (into #{} (range 5)))
 
-()
+;; Day 7 part 1
+(apply max (map #(thrust-from in-7 %) (permutations [] (into #{} (range 5))))) ; => 199988
+
+;; Day 7 part 2
+(count (permutations [] (into #{} (range 5 10))))
+
+(comment
+(take 10 (permutations [] (into #{} (range 1000)))) ;; recursion blows stack.
+)
+
+;; .  prepend output from previous amp to input
+;; . run until halted
+;; . take its output
+;; if it's finished and it's E, the output is it
+;; otherwise, recur
+;; if it's awaiting input, add it to the end of the list (minus its output and :halted state)
+
+(concat [1 2] [3 4])
+
+(defn amp-loop-runner [previous-output [head-amp & tail-amps] last-amp-label]
+  (when head-amp
+    (let [active-amp (-> head-amp
+                         (update :input #(concat % previous-output))
+                         computer/run-intcode)
+          {:keys [output label halted]} active-amp]
+      (if (and (= last-amp-label label) (= :finished halted))
+        output
+        (recur
+         output
+         (if (= :awaiting-input halted)
+           (concat tail-amps [(dissoc active-amp :halted :output)])
+           tail-amps)
+         last-amp-label)))))
+
+(defn labeled [n cpu] (map-indexed #(assoc %2 :label %1) (repeat n cpu)))
+(labeled 4 {})
+(conj (conj nil 1) 2)
+(map + [1 2 3] [2 1 3])
+(empty? nil)
+(defn thrust-from-amp-loop [mem phases]
+  (let [n-amps  (count phases)
+        cpus    (labeled n-amps (assoc (mem->computer mem) :output []))
+        last-label (dec n-amps)
+        amps    (map phased phases cpus)]
+    ;; (first amps)))
+    ;; [[0] (map #(dissoc % :label :input) amps) last-label]))
+    (amp-loop-runner [0] amps last-label)))
+
+(comment
+(thrust-from-amp-loop [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5] [9,8,7,6,5]) ;; => 139629729
+
+)

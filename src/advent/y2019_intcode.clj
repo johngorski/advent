@@ -33,11 +33,13 @@
                   dst (get mem (+ 3 pc))]
               #(assoc % dst (* ((get modes 0) fst) ((get modes 1) snd))))}
       3 ;; store from input
-      (let [[first-input & rest-input] input]
-        {:pc #(+ 2 %)
-         :mem (let [fst (get mem (inc pc))]
-                #(assoc % fst first-input))
-         :input (fn [_] rest-input)})
+      (if (empty? input)
+        {:halted :awaiting-input}
+        (let [[first-input & rest-input] input]
+          {:pc #(+ 2 %)
+           :mem (let [fst (get mem (inc pc))]
+                  #(assoc % fst first-input))
+           :input (fn [_] rest-input)}))
       4 ;; output
       {:pc #(+ 2 %)
        :output (let [fst (get mem (inc pc))]
@@ -67,7 +69,7 @@
                    dst (deref (+ 3 pc))]
                (assoc % dst (if (= fst snd) 1 0)))}
       99
-      {:halted (fn [_] true)})))
+      {:halted (fn [_] :finished)})))
 
 (defn step
   "One step of our Intcode execution"
