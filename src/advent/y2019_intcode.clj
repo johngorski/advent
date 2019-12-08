@@ -9,8 +9,9 @@
   for the program counter (pc) and for the memory itself"
   [{:keys [pc mem input]}]
   (let [deref  #(get mem %)
-        =>     (fn [lifted] (fn [_] lifted))
+        =>     (fn [lifted] (fn [_] lifted)) ;; sets the component to the lifted value
         ++     (fn [d] (fn [n] (+ n d)))
+        put    (fn [dst value] (fn [memory] (assoc memory dst value)))
         op     (deref pc)
         opcode (rem op 100)
         modes  (reduce-kv
@@ -21,21 +22,19 @@
                          \0 deref
                          \1 identity)
                       (reverse (seq (str (quot op 100)))))))
-        param  (fn [idx] ((get modes idx) (+ 1 pc idx))) ;; get param by mode, 0-indexed after pc
-        ]
+        param  (fn [idx] ((get modes idx) (deref (+ 1 pc idx)))) ;; get param by mode, 0-indexed after pc
+        params #(map param (range %))]
     (case opcode
       1 ;; add
       {:pc (++ 4)
-       :mem (let [fst (deref (+ 1 pc))
-                  snd (deref (+ 2 pc))
+       :mem (let [[fst snd] (params 2)
                   dst (deref (+ 3 pc))]
-              #(assoc % dst (+ ((get modes 0) fst) ((get modes 1) snd))))}
+              #(assoc % dst (+ fst snd)))}
       2 ;; multiply
       {:pc (++ 4)
-       :mem (let [fst (deref (+ 1 pc))
-                  snd (deref (+ 2 pc))
+       :mem (let [[fst snd] (params 2)
                   dst (deref (+ 3 pc))]
-              #(assoc % dst (* ((get modes 0) fst) ((get modes 1) snd))))}
+              #(assoc % dst (* fst snd)))}
       3 ;; store from input
       (if (empty? input)
         {:halted (=> :awaiting-input)}
@@ -49,27 +48,23 @@
        :output (let [fst (deref (inc pc))]
                  #(conj (or % []) ((get modes 0) fst)))}
       5 ;; jump-if-true
-      {:pc (let [fst ((get modes 0) (deref (+ 1 pc)))
-                 snd ((get modes 1) (deref (+ 2 pc)))]
+      {:pc (let [[fst snd] (params 2)]
              #(if (not= 0 fst)
                 snd
                 (+ 3 %)))}
       6 ;; jump-if-false
-      {:pc (let [fst ((get modes 0) (deref (+ 1 pc)))
-                 snd ((get modes 1) (deref (+ 2 pc)))]
+      {:pc (let [[fst snd] (params 2)]
              #(if (= 0 fst)
                 snd
                 (+ 3 %)))}
       7 ;; less than
       {:pc (++ 4)
-       :mem #(let [fst ((get modes 0) (deref (+ 1 pc)))
-                   snd ((get modes 1) (deref (+ 2 pc)))
+       :mem #(let [[fst snd] (params 2)
                    dst (deref (+ 3 pc))]
                (assoc % dst (if (< fst snd) 1 0)))}
       8 ;; equals
       {:pc (++ 4)
-       :mem #(let [fst ((get modes 0) (deref (+ 1 pc)))
-                   snd ((get modes 1) (deref (+ 2 pc)))
+       :mem #(let [[fst snd] (params 2)
                    dst (deref (+ 3 pc))]
                (assoc % dst (if (= fst snd) 1 0)))}
       99
