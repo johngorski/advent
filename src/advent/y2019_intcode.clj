@@ -29,19 +29,19 @@
       {:pc (++ 4)
        :mem (let [[fst snd] (params 2)
                   dst (deref (+ 3 pc))]
-              #(assoc % dst (+ fst snd)))}
+              (put dst (+ fst snd)))}
       2 ;; multiply
       {:pc (++ 4)
        :mem (let [[fst snd] (params 2)
                   dst (deref (+ 3 pc))]
-              #(assoc % dst (* fst snd)))}
+              (put dst (* fst snd)))}
       3 ;; store from input
       (if (empty? input)
         {:halted (=> :awaiting-input)}
         (let [[first-input & rest-input] input]
           {:pc #(+ 2 %)
            :mem (let [fst (deref (inc pc))]
-                  #(assoc % fst first-input))
+                  (put fst first-input))
            :input (=> rest-input)}))
       4 ;; output
       {:pc (++ 2)
@@ -49,24 +49,24 @@
                  #(conj (or % []) ((get modes 0) fst)))}
       5 ;; jump-if-true
       {:pc (let [[fst snd] (params 2)]
-             #(if (not= 0 fst)
-                snd
-                (+ 3 %)))}
+             (if (not= 0 fst)
+               (=> snd)
+               (++ 3)))}
       6 ;; jump-if-false
       {:pc (let [[fst snd] (params 2)]
-             #(if (= 0 fst)
-                snd
-                (+ 3 %)))}
+             (if (= 0 fst)
+               (=> snd)
+               (++ 3)))}
       7 ;; less than
       {:pc (++ 4)
-       :mem #(let [[fst snd] (params 2)
-                   dst (deref (+ 3 pc))]
-               (assoc % dst (if (< fst snd) 1 0)))}
+       :mem (let [[fst snd] (params 2)
+                  dst (deref (+ 3 pc))]
+              (put dst (if (< fst snd) 1 0)))}
       8 ;; equals
       {:pc (++ 4)
-       :mem #(let [[fst snd] (params 2)
-                   dst (deref (+ 3 pc))]
-               (assoc % dst (if (= fst snd) 1 0)))}
+       :mem (let [[fst snd] (params 2)
+                  dst (deref (+ 3 pc))]
+              (put dst (if (= fst snd) 1 0)))}
       99
       {:halted (=> :finished)}
       ;; fault
