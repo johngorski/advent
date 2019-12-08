@@ -5,11 +5,10 @@
    [clojure.string :as string]))
 
 (defn decode
-  "Decodes the instruction from the memory pointer, yielding update functions
-  for the program counter (pc) and for the memory itself"
+  "Decodes the instruction from the memory pointer, yielding update functions for cpu components."
   [{:keys [pc mem input]}]
   (let [deref  #(get mem %)
-        =>     (fn [lifted] (fn [_] lifted)) ;; sets the component to the lifted value
+        =>     #(fn [_] %)
         ++     (fn [d] (fn [n] (+ n d)))
         put    (fn [dst value] (fn [memory] (assoc memory dst value)))
         op     (deref pc)
@@ -23,30 +22,23 @@
                          \1 identity)
                       (reverse (seq (str (quot op 100)))))))
         param  (fn [idx] ((get modes idx) (deref (+ 1 pc idx)))) ;; get param by mode, 0-indexed after pc
-        params #(map param (range %))]
+        params #(map param (range %))
+        operator (fn [& fs]
+                   {:pc (++ 4)
+                    :mem (put (deref (+ 3 pc)) (apply (apply comp fs) (params 2)))})
+        int<-bool #(if % 1 0)]
     (case opcode
-      1 ;; add
-      {:pc (++ 4)
-       :mem (let [[fst snd] (params 2)
-                  dst (deref (+ 3 pc))]
-              (put dst (+ fst snd)))}
-      2 ;; multiply
-      {:pc (++ 4)
-       :mem (let [[fst snd] (params 2)
-                  dst (deref (+ 3 pc))]
-              (put dst (* fst snd)))}
+      1 (operator +) ;; add
+      2 (operator *) ;; multiply
       3 ;; store from input
       (if (empty? input)
         {:halted (=> :awaiting-input)}
-        (let [[first-input & rest-input] input]
-          {:pc #(+ 2 %)
-           :mem (let [fst (deref (inc pc))]
-                  (put fst first-input))
-           :input (=> rest-input)}))
+        {:pc (++ 2)
+         :mem (put (deref (inc pc)) (first input))
+         :input rest})
       4 ;; output
       {:pc (++ 2)
-       :output (let [fst (deref (inc pc))]
-                 #(conj (or % []) ((get modes 0) fst)))}
+       :output #(conj (or % []) (param 0))}
       5 ;; jump-if-true
       {:pc (let [[fst snd] (params 2)]
              (if (not= 0 fst)
@@ -57,20 +49,10 @@
              (if (= 0 fst)
                (=> snd)
                (++ 3)))}
-      7 ;; less than
-      {:pc (++ 4)
-       :mem (let [[fst snd] (params 2)
-                  dst (deref (+ 3 pc))]
-              (put dst (if (< fst snd) 1 0)))}
-      8 ;; equals
-      {:pc (++ 4)
-       :mem (let [[fst snd] (params 2)
-                  dst (deref (+ 3 pc))]
-              (put dst (if (= fst snd) 1 0)))}
-      99
-      {:halted (=> :finished)}
-      ;; fault
-      {:halted (=> :fault)})))
+      7 (operator int<-bool <) ;; less than
+      8 (operator int<-bool =) ;; equals
+      99 {:halted (=> :finished)} ;; finish
+      {:halted (=> :fault)}))) ;; fault
 
 (defn step
   "One step of our Intcode execution"
