@@ -438,3 +438,85 @@ I)SAN")
 
 (defn soln-day-7-part-2 []
   (apply max (map #(thrust-from-amp-loop in-7 %) (permutations [] (into #{} (range 5 10))))))
+
+;; Day 8
+
+(defn str->digits [s]
+  (map edn/read-string (string/split s #"")))
+
+(comment
+(string/split "123" #"")
+(str->digits "123456789012")
+)
+
+(defn layers [w h ds]
+  (partition (* w h) ds))
+
+(comment
+(layers 3 2 (str->digits "123456789012"))
+)
+
+(def in-8 (slurp (io/resource "2019/8.txt")))
+
+;; day 8 part 1
+(comment
+(let [fewest-0s (apply min-key
+                     #(count (filter (fn [pxl] (= 0 pxl)) %))
+                     (layers 25 6 (str->digits in-8)))
+      ones (count (filter #(= 1 %) fewest-0s))
+      twos (count (filter #(= 2 %) fewest-0s))]
+  (* ones twos))
+
+(count (layers 25 6 (str->digits in-8)))
+)
+
+(defn parse-image
+  "parse images to layers"
+  [w h pxls]
+  (->> (str->digits pxls)
+       (layers w h)
+       (map #(vec (map vec (partition w %))))
+       vec))
+
+(comment
+(parse-image 3 2 "123456789012") ; => (((1 2 3) (4 5 6)) ((7 8 9)(0 1 2)))
+
+(parse-image 2 2 "0222112222120000") ;; => (((0 2) (2 2)) ((1 1) (2 2)) ((2 2) (1 2)) ((0 0) (0 0)))
+
+(get-in [[1]] [0 0])
+
+(get-in (parse-image 2 2 "0222112222120000") [1  ])
+
+(map * [2 5] [3 7])
+)
+
+(defn merge-row [top-row bottom-row]
+  (vec (map #(if (= 2 %1) %2 %1) top-row bottom-row)))
+
+(defn merge-layer [top bottom]
+  (vec (map merge-row top bottom)))
+
+(defn compile-image [image]
+  (reduce merge-layer image))
+
+(comment
+(compile-image (parse-image 2 2 "0222112222120000"))
+)
+
+(defn image->ascii [[& rows]]
+  (string/join "\n" (map string/join rows)))
+
+(comment
+(image->ascii (compile-image (parse-image 2 2 "0222112222120000")))
+
+(image->ascii (compile-image (parse-image 25 6 in-8)))
+
+;; Day 8 part 2
+(println
+ (apply str
+        (map #(case %
+                \0 " "
+                \1 "*"
+                %)
+             (seq (image->ascii (compile-image (parse-image 25 6 in-8)))))))
+)
