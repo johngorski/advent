@@ -79,5 +79,6 @@
   (testing "relative base mode works for input"
     (is (= [203 3 0 0 0 0 5] (:mem (step {:pc 0 :relative-base 3 :input [5] :mem [203 3]})))))
   (testing "Day 9 part 1"
-    (is (= [2518058886] (:output (run-intcode {:pc 0 :mem y2019/in-9 :input [1]}))))))
+    (is (= [2518058886] (:output (run-intcode {:pc 0 :mem y2019/in-9 :input [1]}))))
+    (is (= [44292] (:output (run-intcode {:pc 0 :mem y2019/in-9 :input [2]}))))))
 
