@@ -59,4 +59,16 @@
     (is (= 37230 (y2019/thrust-from y2019/in-7 [0 1 2 3 4])))
     (is (= 139629729 (y2019/thrust-from-amp-loop (:mem y2019/sample-7-2) (:phases y2019/sample-7-2))))
     (is (= 18216 (y2019/thrust-from-amp-loop [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10] [9,7,8,5,6])))
-    (is (= 17519904 (y2019/soln-day-7-part-2)))))
+    (is (= 17519904 (y2019/soln-day-7-part-2))))
+  (testing "Relative base adjustment"
+    (is (= 2019 (:relative-base (step {:pc 0 :mem [109,19] :relative-base 2000}))))
+    (is (= 1985 (:relative-base (step {:pc 0 :mem [109,1985]})))))
+;;  (+' Long/MAX_VALUE Long/MAX_VALUE)
+;;  (*' Long/MAX_VALUE Long/MAX_VALUE)
+  (testing "Day 9 test quine"
+    (let [quine [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]]
+      (is (= quine (:output (run-intcode {:pc 0 :mem quine}))))))
+  (testing "Handles large numbers"
+    (is (= [1219070632396864] (:output (run-intcode {:pc 0 :mem [1102,34915192,34915192,7,4,7,99,0]}))))
+    (is (= [1125899906842624] (:output (run-intcode {:pc 0 :mem [104,1125899906842624,99]}))))))
+
