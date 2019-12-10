@@ -70,5 +70,14 @@
       (is (= quine (:output (run-intcode {:pc 0 :mem quine}))))))
   (testing "Handles large numbers"
     (is (= [1219070632396864] (:output (run-intcode {:pc 0 :mem [1102,34915192,34915192,7,4,7,99,0]}))))
-    (is (= [1125899906842624] (:output (run-intcode {:pc 0 :mem [104,1125899906842624,99]}))))))
+    (is (= [1125899906842624] (:output (run-intcode {:pc 0 :mem [104,1125899906842624,99]})))))
+  (testing "put can grow memory" ;; ((put 1000 2) [])
+    (is (= [9 0 0 7] ((put 3 7) [9])))
+    (is (= [203 2 0 0 0 0 5] ((put 6 5) [203 2]))))
+  (testing "relative move detection"
+    (is (= [\2 \0 \0] (mode-codes 203))))
+  (testing "relative base mode works for input"
+    (is (= [203 3 0 0 0 0 5] (:mem (step {:pc 0 :relative-base 3 :input [5] :mem [203 3]})))))
+  (testing "Day 9 part 1"
+    (is (= [2518058886] (:output (run-intcode {:pc 0 :mem y2019/in-9 :input [1]}))))))
 

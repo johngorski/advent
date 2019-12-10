@@ -520,3 +520,5 @@ I)SAN")
                 %)
              (seq (image->ascii (compile-image (parse-image 25 6 in-8)))))))
 )
+
+(def in-9 (vec (map edn/read-string (string/split (slurp (io/resource "2019/9.txt")) #","))))
