@@ -725,14 +725,16 @@ I)SAN")
     (->> rgt
          keys
          (sort-by #(- %))
-         (map (fn [k] (get rgt k))))))
+         (map (fn [k] (get rgt k)))
+         (map first))))
 
 (defn next-left
   [{:keys [left]}]
   (->> left
        keys
        sort
-       (map #(get left %))))
+       (map #(get left %))
+       (map first)))
 
 (defn rest-dir
   "Remaining vaporization table once the next round from the given quadrant is vaporized."
@@ -745,6 +747,7 @@ I)SAN")
 (update {:below {:! [1 2]}} :below #(map-values rest %))
 (rest-dir :right {:right {1 [2 3], 4 [5 6]}, :left {7 [8 9]}})
 (rest nil)
+(seq nil)
 
 ;; After the quadrant seq is exhausted through the first layer, it moves to the next.
 ;; The vaporized asteroids are, of course, vaporized.
@@ -761,4 +764,14 @@ I)SAN")
 
 (defn laser-seq
   [dir vt]
- )
+  (let [target-fn (case dir
+                  :above next-above
+                  :right next-right
+                  :below next-below
+                  :left next-left)
+        targets (target-fn vt)
+        next-vt (rest-dir dir vt)]
+    (concat targets (lazy-seq (laser-seq (clockwise-successor dir) next-vt)))))
+
+(take 10 (laser-seq :above (vaporization-table [8 3] (asteroids sample-10-2))))
+
