@@ -758,3 +758,7 @@ I)SAN")
    :left :above})
 
 ;; The sequence starts with the asteroid above.
+
+(defn laser-seq
+  [dir vt]
+ )
