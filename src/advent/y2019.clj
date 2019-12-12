@@ -558,14 +558,18 @@ I)SAN")
 (defn rows [s]
   (string/split s #"\n"))
 
+(comment
 (rows sample-10-1)
+)
 
 (defn idx-cols [row]
   (->> row
        seq
        (map-indexed vector)))
 
-(idx-cols (first (rows sample-10-1)))
+(comment
+  (idx-cols (first (rows sample-10-1)))
+  )
 
 (defn asteroids [asteroid-field-str]
   (->> asteroid-field-str
@@ -580,11 +584,13 @@ I)SAN")
        (apply concat)
        set))
 
+(comment
 (asteroids sample-10-1)
 (some? [1 2])
 (empty? [])
 (seq [])
 (seq [1 2])
+)
 
 (defn visible-from [a a-set]
   (->> (disj a-set a)
@@ -595,10 +601,13 @@ I)SAN")
 (defn max-visible [as]
   (apply max (map #(visible-from % as) as)))
 
+(comment
 (max-visible (asteroids sample-10-1)) ;; => 8
+)
 
 (defn puzzle-in [day] (slurp (io/resource (str "2019/" day ".txt"))))
 
+(comment
 (asteroids (puzzle-in 10))
 
 (max-visible (asteroids (puzzle-in 10))) ;; => 269
@@ -606,16 +615,19 @@ I)SAN")
 (let [asteroid-field (asteroids (puzzle-in 10))
       sees (fn [asteroid] (visible-from asteroid asteroid-field))]
   (apply (partial max-key sees) asteroid-field))
+)
 
 (defn best-station [asteroid-field]
   (let [sees (fn [asteroid] (visible-from asteroid asteroid-field))]
     (apply (partial max-key sees) asteroid-field)))
 
+(comment
 (best-station (asteroids sample-10-1)) ;; => [3 4]
 
 (best-station (asteroids (puzzle-in 10))) ;; [13 17]
 
 (visible-from [13 17] (asteroids (puzzle-in 10)))
+)
 
 ;; Laser portion: from the best station, merge a map of the other asteroids based
 ;; on their asteroid-slope from the station. Merge with a function that inserts
@@ -633,8 +645,9 @@ I)SAN")
                  v (f (get m k))]
              [k v])))
 
-
+(comment
 (keys {:a 1, :b 2})
+)
 
 (defn map-values [f m]
   (reduce #(update %1 %2 f) m (keys m)))
@@ -667,7 +680,9 @@ I)SAN")
   [station asteroid-field]
   (group-by #(asteroid-slope station %) (disj asteroid-field station)))
 
+(comment
 (asteroids-by-direction [8 3] (asteroids sample-10-2))
+)
 
 (def directions [:above :right :below :left])
 
@@ -679,10 +694,12 @@ I)SAN")
           (for [[{:keys [direction slope]} asteroids] (asteroids-by-direction station asteroid-field)]
             #(assoc-in % [direction slope] (sort-by (fn [asteroid] (manhattan station asteroid)) asteroids)))))
 
+(comment
 (manhattan [8 3] [8 0]) ;; => 3;
 (manhattan [8 3] [8 1]) ;; => 2;
 
 (vaporization-table [8 3] (asteroids sample-10-2))
+)
 
 (def sample-10-2
   ".#....#####...#..
@@ -741,6 +758,7 @@ I)SAN")
   [dir vt]
   (update vt dir #(map-values rest %)))
 
+(comment
 (rest-below {:below {:! [1 2]}})
 (rest-dir :below {:below {:! [1 2]}})
 (map-values rest {:! [1 2]})
@@ -754,6 +772,7 @@ I)SAN")
 ;; The vaporized asteroids are, of course, vaporized.
 ;; Directions cycle as in this example:
 (take 8 (cycle directions))
+)
 
 (def clockwise-successor
   {:above :right
@@ -774,7 +793,41 @@ I)SAN")
         next-vt (rest-dir dir vt)]
     (concat targets (lazy-seq (laser-seq (clockwise-successor dir) next-vt)))))
 
+(comment
 (take 10 (laser-seq :above (vaporization-table [8 3] (asteroids sample-10-2))))
 
 (concat nil [1 2] nil [3 4])
 (first [])
+
+(best-station (asteroids (puzzle-in 10)))
+(first (drop 199 (laser-seq :above (vaporization-table [13 17] (asteroids (puzzle-in 10)))))) ;; => [6 12]
+
+(def sample-10-3
+  ".#..##.###...#######
+##.############..##.
+.#.######.########.#
+.###.#######.####.#.
+#####.##.#.##.###.##
+..#####..#.#########
+####################
+#.####....###.#.#.##
+##.#################
+#####.##.###..####..
+..######..##.#######
+####.##.####...##..#
+.#####..#.######.###
+##...#.##########...
+#.##########.#######
+.####.#.###.###.#.##
+....##.##.###..#####
+.#.#.###########.###
+#.#.#.#####.####.###
+###.##.####.##.#..##
+")
+
+(best-station  (asteroids sample-10-3))
+(first (drop 199 (laser-seq :above (vaporization-table [11 13] (asteroids sample-10-3)))))
+)
+;; Yowza, that was quite the part 2
+
+;; Day 11
