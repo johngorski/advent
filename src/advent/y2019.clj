@@ -3,7 +3,7 @@
    [advent.y2019-intcode :as computer]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.set :as set]
+   [clojure.set :as sets]
    [clojure.string :as string]))
 
 (defn fuel [mass]
@@ -285,9 +285,9 @@ K)L")
 (defn transfers-to-santa [m]
   (let [you-planets (into #{} (orbits-for "YOU" m))
         san-planets (into #{} (orbits-for "SAN" m))]
-    (count (set/difference
-            (set/union you-planets san-planets)
-            (set/intersection you-planets san-planets)))))
+    (count (sets/difference
+            (sets/union you-planets san-planets)
+            (sets/intersection you-planets san-planets)))))
 
 (def sample-6-2 "COM)B
 B)C
@@ -522,3 +522,239 @@ I)SAN")
 )
 
 (def in-9 (vec (map edn/read-string (string/split (slurp (io/resource "2019/9.txt")) #","))))
+
+;; Day 10
+
+;; Part 1: Thought: Compute slope + left/right + up/down between each asteroid and all the others
+;;         and throw into set. Set with highest cardinality is our outpost.
+
+(defn asteroid-slope
+  "direction asteroid b is from asteroid a"
+  [[ax ay] [bx by]]
+  (let [rise (- ay by)
+        run  (- bx ax)]
+    (if (= 0 run)
+      {:slope :!
+       :direction (if (< rise 0) :below :above)}
+      {:slope (/ rise run)
+       :direction (if (< run 0) :left :right)})))
+
+(asteroid-slope [0 0] [0 1]) ;; => {:slope :!, :direction :below}
+(asteroid-slope [0 1] [0 0]) ;; => {:slope :!, :direction :above}
+(asteroid-slope [3 4] [8 6]) ;; => {:slope -2/5, :direction :left}
+(asteroid-slope [0 1] [1 0]) ;; => {:slope 1, :direction :right}
+
+
+
+;; Bedtime. Parse asteroid file and find the max slopes of an asteroid field tomorrow.
+
+(def sample-10-1
+  ".#..#
+.....
+#####
+....#
+...##")
+
+(defn rows [s]
+  (string/split s #"\n"))
+
+(rows sample-10-1)
+
+(defn idx-cols [row]
+  (->> row
+       seq
+       (map-indexed vector)))
+
+(idx-cols (first (rows sample-10-1)))
+
+(defn asteroids [asteroid-field-str]
+  (->> asteroid-field-str
+       rows
+       (map-indexed (fn [r-idx row]
+                      (->> (idx-cols row)
+                           (keep (fn [[c-idx col]]
+                                   (when (= col \#)
+                                     [c-idx r-idx])))
+                           seq)))
+       concat
+       (apply concat)
+       set))
+
+(asteroids sample-10-1)
+(some? [1 2])
+(empty? [])
+(seq [])
+(seq [1 2])
+
+(defn visible-from [a a-set]
+  (->> (disj a-set a)
+       (map (partial asteroid-slope a))
+       set
+       count))
+
+(defn max-visible [as]
+  (apply max (map #(visible-from % as) as)))
+
+(max-visible (asteroids sample-10-1)) ;; => 8
+
+(defn puzzle-in [day] (slurp (io/resource (str "2019/" day ".txt"))))
+
+(asteroids (puzzle-in 10))
+
+(max-visible (asteroids (puzzle-in 10))) ;; => 269
+
+(let [asteroid-field (asteroids (puzzle-in 10))
+      sees (fn [asteroid] (visible-from asteroid asteroid-field))]
+  (apply (partial max-key sees) asteroid-field))
+
+(defn best-station [asteroid-field]
+  (let [sees (fn [asteroid] (visible-from asteroid asteroid-field))]
+    (apply (partial max-key sees) asteroid-field)))
+
+(best-station (asteroids sample-10-1)) ;; => [3 4]
+
+(best-station (asteroids (puzzle-in 10))) ;; [13 17]
+
+(visible-from [13 17] (asteroids (puzzle-in 10)))
+
+;; Laser portion: from the best station, merge a map of the other asteroids based
+;; on their asteroid-slope from the station. Merge with a function that inserts
+;; by any geometrical distance metric.
+
+(defn manhattan [[ax ay] [bx by]]
+  (+ (abs (- bx ax)) (abs (- by ay))))
+
+;; Let's call it a vaporization table.
+
+(defn map-values
+  "Map where all keys are from m and corresponding values are (f (m k))"
+  [f m]
+  (into {} (for [k (keys m)
+                 v (f (get m k))]
+             [k v])))
+
+
+(keys {:a 1, :b 2})
+
+(defn map-values [f m]
+  (reduce #(update %1 %2 f) m (keys m)))
+
+(map-values even? {:a 1, :b 2})
+
+(comment
+(defn asteroids-by-direction
+
+  [station asteroid-field]
+  (->>
+   (for [asteroid (disj asteroid-field station)]
+     {(asteroid-slope station asteroid) #{asteroid}})
+   (apply merge-with sets/union)))
+
+(defn asteroids-by-direction
+
+  [station asteroid-field]
+  (->>
+   (disj asteroid-field station)
+   (map (juxt #(asteroid-slope station %) identity))
+   (map (fn [[{:keys [direction slope]} coordinates]]
+          {direction {slope #{coordinates}}}))
+   (apply merge-with sets/union)))
+)
+
+;; Crap: This is a group-by! That was a fun 90 minutes.
+(defn asteroids-by-direction
+  "Given the station and asteroid field, returns a map first keyed with direction, then by slope to a set of asteroid coordinates"
+  [station asteroid-field]
+  (group-by #(asteroid-slope station %) (disj asteroid-field station)))
+
+(asteroids-by-direction [8 3] (asteroids sample-10-2))
+
+(def directions [:above :right :below :left])
+
+
+(defn vaporization-table
+  "A map from direction to a map from slope to distance."
+  [station asteroid-field]
+  (reduce #(%2 %1) {}
+          (for [[{:keys [direction slope]} asteroids] (asteroids-by-direction station asteroid-field)]
+            #(assoc-in % [direction slope] (sort-by (fn [asteroid] (manhattan station asteroid)) asteroids)))))
+
+(manhattan [8 3] [8 0]) ;; => 3;
+(manhattan [8 3] [8 1]) ;; => 2;
+
+(vaporization-table [8 3] (asteroids sample-10-2))
+
+(def sample-10-2
+  ".#....#####...#..
+##...##.#####..##
+##...#...#.#####.
+..#.....X...###..
+..#.#.....#....##")
+
+;; The asteroid vaporization sequence follows the previously vaporized asteroid
+;; clockwise, nearest asteroid going first.
+
+;; Only the nearest asteroid is vaporized. This is a single asteroid before moving
+;; on in the case of :above and :below, and the sequence of first-by-distance
+;; asteroids in order of decreasing slope for :right and increasing slope for :left.
+
+(defn next-above
+  "Seq of the next asteroids above to be vaporized before moving the laser to the right."
+  [vt]
+  [(first (get-in vt [:above :!]))])
+
+(defn next-below
+  "Seq of the next asteroids below to be vaporized before moving the laser to the left."
+  [vt]
+  [(first (get-in vt [:below :!]))])
+
+(defn rest-above
+  "Remaining asteroids above after head is vaporized"
+  [vt]
+  (update-in vt [:above :!] rest))
+
+(defn rest-below
+  "Remaining asteroids below after head is vaporized"
+  [vt]
+  (update-in vt [:below :!] rest))
+
+(defn next-right
+  "Seq of the next asteroids right to be vaporized before moving the laser below."
+  [vt]
+  (let [rgt (:right vt)]
+    (->> rgt
+         keys
+         (sort-by #(- %))
+         (map (fn [k] (get rgt k))))))
+
+(defn next-left
+  [{:keys [left]}]
+  (->> left
+       keys
+       sort
+       (map #(get left %))))
+
+(defn rest-dir
+  "Remaining vaporization table once the next round from the given quadrant is vaporized."
+  [dir vt]
+  (update vt dir #(map-values rest %)))
+
+(rest-below {:below {:! [1 2]}})
+(rest-dir :below {:below {:! [1 2]}})
+(map-values rest {:! [1 2]})
+(update {:below {:! [1 2]}} :below #(map-values rest %))
+(rest-dir :right {:right {1 [2 3], 4 [5 6]}, :left {7 [8 9]}})
+(rest nil)
+
+;; After the quadrant seq is exhausted through the first layer, it moves to the next.
+;; The vaporized asteroids are, of course, vaporized.
+;; Directions cycle as in this example:
+(take 8 (cycle directions))
+
+(def clockwise-successor
+  {:above :right
+   :right :below
+   :below :left
+   :left :above})
+
+;; The sequence starts with the asteroid above.
