@@ -61,15 +61,18 @@
     :left  [(dec x) y]))
 
 (move :up [0 0]) ;; => [0 1];
+(move :down [0 0]) ;; => [0 -1];
+(move :left [0 0]) ;; => [-1 0];
+(move :right [0 0]) ;; => [1 0];
 
 (defn turn
   [command direction]
   (case command
     0 (case direction
         :up    :left
-        :right :up
+        :left  :down
         :down  :right
-        :left  :up)
+        :right :up)
     
     1 (case direction
         :up    :right
