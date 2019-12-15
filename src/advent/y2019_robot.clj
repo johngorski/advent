@@ -1,7 +1,8 @@
 (ns advent.y2019-robot
   (:require
    [advent.y2019 :as y2019]
-   [advent.y2019-intcode :as computer]))
+   [advent.y2019-intcode :as computer]
+   [clojure.string :as string]))
 
 (def brain (-> (y2019/puzzle-in 11) computer/load-program))
 
@@ -9,7 +10,7 @@
 ;; Result conditions should be a member of the "condition" column of the state
 ;; transition table.
 (defn think [{:keys [brain] :as world}]
-  (if (= :finished (:halted brain))
+  (if (#{:finished :crashed} (:halted brain))
     [:finished world]
     (let [brain'    (computer/run-intcode (dissoc brain :halted))
           world'    (assoc world :brain brain')
@@ -38,6 +39,7 @@
 (comment
 (current-panel {:panels {} :position [0 0]}) ;; => 0;
 (current-panel {:panels {[0 0] 1} :position [0 0]}) ;; => 1;
+(current-panel {:panels {[0 0] 0} :position [0 0]}) ;; => 0;
 )
 
 (defn paint [{:keys [brain panels position] :as world}]
@@ -144,101 +146,58 @@
    :panels      {}
    :last-action :moved-last})
 
-(state-machine :think starting-world)
+;; (state-machine :think starting-world)
+(def final-state (state-machine :think starting-world))
 
-(comment ;; pre-paper try
-;; Robot has a brain, position, and direction.
-;; In the world, there's a robot and a bunch of panels.
+(defn clip-state [world]
+  (-> world
+    (dissoc :panels)
+    (update :brain #(dissoc % :mem))))
 
+(defn hull-bounds [panels]
+  (let [painted (keys panels)]
+    {:left   (apply min (map first painted))
+     :right  (apply max (map first painted))
+     :top    (apply max (map second painted))
+     :bottom (apply min (map second painted))}))
 
+(hull-bounds {[0 -1] 1, [-1 -1] 1, [1 0] 1, [1 1] 1, [0 0] 0}) ;; => {:left -1, :right 1, :top 1, :bottom -1};
 
-(defn colors-of
+(defn draw-hull [panels]
+  (let [{:keys [left right top bottom]} (hull-bounds panels)]
+    (for [x (range left (inc right))
+          y (range top (dec bottom) -1)]
+      (do
+        (when (= 0 x)
+          (print "\n"))
+        (print (if (= 1 (get panels [x y]))
+                 "#"
+                 "."))))))
+
+(defn hull-string
+  "Strings representing rows in the hull joined with newlines."
   [panels]
-  (fn [position]
-    (get panels position 0)))
+  (let [{:keys [left right top bottom]} (hull-bounds panels)]
+    (->>
+     (for [y (range top (dec bottom) -1)]
+       (->> (range left (inc right))
+            (map (fn [x] (if (= 1 (get panels [x y])) "#" ".")))
+            (string/join "")))
+     (string/join "\n"))))
 
-(defn painter
-  [position output]
-  (fn [panels]
-    (assoc panels position output)))
+(defn test-outputs
+  [outputs]
+  (state-machine :process-output (assoc starting-world :brain {:output outputs :halted :finished} :last-action :moved-last)))
 
-(defn mover
-  [direction]
-  (fn [[x y]]
-    (case direction
-      :up    #(vec [x (inc y)])
-      :right #(vec [(inc x) y])
-      :down  #(vec [x (dec y)])
-      :left  #(vec [(dec x) y]))))
+(test-outputs [1 0 0 0 1 0 1 0 0 1 1 0 1 0])
+;; => {:brain {:output (), :halted :finished, :input [0]},
+;;     :position [0 1],
+;;     :direction :left,
+;;     :panels {[0 0] 0, [-1 0] 0, [-1 -1] 1, [0 -1] 1, [1 0] 1, [1 1] 1},
+;;     :last-action :moved-last}
 
-(defn turner
-  [command]
-  (case command
-    0 (fn [direction]
-        (case direction
-          :up    :left
-          :right :up
-          :down  :right
-          :left  :up))
-    1 (fn [direction]
-        (case direction
-          :up    :right
-          :right :down
-          :down  :left
-          :left  :up))))
+(defn draw-hull [panels]
+  (println (hull-string panels)))
 
-(defn next-action
-  [action]
-  (if (= :painting action)
-    :moving
-    :painting))
+(draw-hull (:panels final-state)) ;; => Doesn't quite look alphanumeric....
 
-
-(defn act-on-world
-  "function transforming the world based on the list of commands"
-  [[output & outputs] {:keys [robot-position robot-direction] :as world}]
-  (if output
-    (try
-      (case (:action world)
-        :painting
-        (act-on-world outputs
-                      (update (update world :action next-action) :panels (painter robot-position output)))
-        :moving
-        (let [direction' ((turner output)     robot-direction)
-              position'  ((mover  direction') robot-position)]
-          (act-on-world outputs (assoc (update world :action next-action)
-                                        :robot-direction direction'
-                                        :robot-position  position'))
-          )
-        )
-      ;; world)
-      (catch Exception e
-        (println e)))
-    world))
-
-(defn paint-step
-  "from the given robot position/direction and ship panels, returns the transform from the current round of output from the robot. The robot must paint. The robot must move and turn."
-  [{:keys [robot panels]} robot-output]
-  )
-
-(defn paint-hull [robot-brain world]
-  (let [halted-robot-brain (computer/run-intcode robot-brain) ;; Halts awaiting input or finished...or faulted
-        world' (act-on-world (:output halted-robot-brain) world)
-        input [((colors-of (:panels world')) (:robot-position world'))]
-        refreshed-robot-brain (assoc (dissoc halted-robot-brain :output :halted) :input input)]
-    (if (= :awaiting-input (:halted halted-robot-brain))
-      (recur refreshed-robot-brain world')
-       world')))
-
-;;(paint-hull starting-world)
-
-
-;; Process output to figure out what's been painted and what the robot's input is
-
-
-;; Resume robot with cleared output and new input
-
-
-;; Halts as finished => we're done
-
-)
