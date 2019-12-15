@@ -14,4 +14,12 @@
 
 (def final-pixels (apply merge drawing-instructions))
 
-()
+(count
+ (filter
+  (fn [[loc id]] (= id 2))
+  (seq final-pixels)))
+
+;; Come back to part 2 later.
+;; Not sure if the surest path is interactive or having the joystick dumbly track the ball.
+;; Best to get stars elsewhere first, most likely.
+
