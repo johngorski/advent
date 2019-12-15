@@ -79,3 +79,15 @@
 (apply total-energy (nth (iterate step [sample-12 v0]) 10)) ;; => 179;
 
 (apply total-energy (nth (iterate step [puzzle-12 v0]) 1000)) ;; => 12490;
+
+(defn count-period [step-idx seen state]
+  (if (seen state)
+    step-idx
+    (recur (inc step-idx) (conj seen state) (step state))))
+
+(count-period 0 #{} [sample-12 v0]) ;; => 2772;
+
+(comment
+  (count-period 0 #{} [puzzle-12 v0])
+  )
+   
