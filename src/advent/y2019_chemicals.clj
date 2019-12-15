@@ -72,10 +72,13 @@
 
 (defn load-formulae [s]
   (instaparse/transform
-   {:QUANTITY edn/read-string
-    :CHEMICAL keyword
-    :PRODUCT (fn [quant _ chem] {chem quant})
+   {:CHEMICAL keyword
+    :QUANTITY edn/read-string
+    :PRODUCT  (fn [quant _ chem] {chem quant})
     :REAGENTS (fn [& rs] (apply merge (every-other rs)))
-;;    :FORMULAE (fn [& fs] )
+    :FORMULA  (fn [reagents _ [[chem quant] & _]]
+                {chem {:quantity quant
+                       :reagents reagents}})
+    :FORMULAE (fn [& fs] (apply merge (every-other fs)))
     }
    (formula-parser s)))
