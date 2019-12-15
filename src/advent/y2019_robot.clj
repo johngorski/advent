@@ -9,12 +9,14 @@
 ;; Result conditions should be a member of the "condition" column of the state
 ;; transition table.
 (defn think [{:keys [brain] :as world}]
-  (let [brain'    (computer/run-intcode brain)
-        world'    (assoc world :brain brain')
-        condition (case (:halted brain')
-                    :finished       :finished
-                    :awaiting-input :need-input)]
-    [condition world']))
+  (if (= :finished (:halted brain))
+    [:finished world]
+    (let [brain'    (computer/run-intcode (dissoc brain :halted))
+          world'    (assoc world :brain brain')
+          condition (case (:halted brain')
+                      :finished       :need-input ;; This is now poorly-named, since it's now a signal to process output.
+                      :awaiting-input :need-input)]
+      [condition world'])))
 
 (defn append
   "A conj which treats nil as an empty vector"
@@ -46,6 +48,9 @@
                        :brain  brain'
                        :panels panels')]
     [:any world']))
+
+(paint {:panels {}, :position [0 0], :brain {:output [0]}}) ;; => [:any {:panels {[0 0] 0}, :position [0 0], :brain {:output ()}}];
+((comp paint second paint) {:panels {}, :position [0 0], :brain {:output [0 1]}}) ;; => [:any {:panels {[0 0] 1}, :position [0 0], :brain {:output ()}}];
 
 (defn move
   [direction [x y]]
@@ -86,8 +91,7 @@
 (defn process-output [{:keys [brain last-action] :as world}]
   (if (empty? (:output brain))
     (let [brain'  (-> brain
-                      (update :input append (current-panel world))
-                      (dissoc :halted))
+                      (update :input append (current-panel world)))
           world'  (assoc world :brain brain')
           condition :output-empty]
       [condition world'])
