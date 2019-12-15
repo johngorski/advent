@@ -4,7 +4,8 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.set :as sets]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [trie.core :refer [trie]]))
 
 (def puzzle-12
   [[8 0 8]
@@ -86,8 +87,83 @@
     (recur (inc step-idx) (conj seen state) (step state))))
 
 (count-period 0 #{} [sample-12 v0]) ;; => 2772;
+   
+;; Seems a noble try may be a...trie. Take advantage of repeated substructures in the set.
+
+(defn count-period-faster [step-idx seen state]
+  (let [flat (flatten state)]
+    (if (seen flat)
+      step-idx
+      (recur (inc step-idx) (conj seen flat) (step state)))))
+
+(count-period-faster 0 (trie) [sample-12 v0]) ;; => 2772;
 
 (comment
-  (count-period 0 #{} [puzzle-12 v0])
+  (count-period-faster 0 (trie) [puzzle-12 v0])
   )
-   
+
+;; Tries alone...not so great. Not off the shelf, anyway.
+;; Let's try mapping first by total energy, and doing the trie addition/comparison only if needed.
+;; Wait no. Let's see if sets are enough first.
+
+(get-in {:a #{1 2}} [:a 2]) ;; => 2;
+(get-in {:a #{1 2}} [:a 3]) ;; => nil;
+
+(defn count-period-much-faster [step-idx seen state]
+  (let [e (apply total-energy state)]
+    (if (get-in seen [e state])
+      step-idx
+      (recur (inc step-idx) (update seen e #(conj (or % #{}) state)) (step state)))))
+
+(count-period-much-faster 0 {} [sample-12 v0]) ;; => 2772;
+
+(comment
+(count-period-much-faster 0 {} [puzzle-12 v0])
+)
+
+;; All right fine, let's try both
+
+(defn count-period-much-much-faster [step-idx seen state]
+  (let [e (apply total-energy state)
+        flat (flatten state)]
+    (if (get (seen e) flat)
+      step-idx
+      (recur (inc step-idx) (update seen e #(conj (or % (trie)) flat)) (step state)))))
+
+(count-period-much-much-faster 0 {} [sample-12 v0]) ;; => 2772;
+
+(comment
+(count-period-much-much-faster 0 {} [puzzle-12 v0])
+)
+
+;; Let's just try counting energies
+
+(defn count-energy-period [step-idx seen state]
+  (let [e (apply total-energy state)]
+    (if (seen e)
+      step-idx
+      (recur (inc step-idx) (conj seen e) (step state)))))
+
+(count-energy-period 0 #{} [sample-12 v0]) ;; => 13; Too fast! Let's break them up.
+
+(defn planet-energies
+  [[positions velocities]]
+  (map energy (concat positions velocities)))
+;;  (map * (map energy positions) (map energy velocities)))
+
+;; (planet-energies ((comp step step) [sample-12 v0])) ;; => (63 65 54 63);
+(planet-energies ((comp step step) [sample-12 v0])) ;; => (9 5 6 7 7 13 9 9);
+(planet-energies [sample-12 v0]) ;; => (3 19 20 9 0 0 0 0);
+(planet-energies (step [sample-12 v0])) ;; => (4 14 13 4 5 7 7 5);
+
+(defn count-separate-energy-period [step-idx seen state]
+  (let [e (planet-energies state)]
+    (if (seen e)
+      step-idx
+      (recur (inc step-idx) (conj seen e) (step state)))))
+
+(count-separate-energy-period 0 (trie) [sample-12 v0]) ;; => 2759; So close! 2772. That's what we need.
+
+(comment
+(count-separate-energy-period 0 (trie) [puzzle-12 v0])
+)

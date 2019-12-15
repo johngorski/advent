@@ -11,6 +11,11 @@
 (into [0 0 0 0 0 0 0 0] [2 2 2 2 2])
 )
 
+(defn load-program [prog-str]
+  {:pc 0
+   :mem (vec (map edn/read-string (string/split prog-str #",")))
+  })
+
 (defn put [dst value]
   (fn [memory]
     (let [memsize (count memory)
