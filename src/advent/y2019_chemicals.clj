@@ -57,12 +57,6 @@
 7 XCVML => 6 RJRHP
 5 BHXH, 4 VRPVC => 5 LTCX"]])
 
-(def as-and-bs
-  (instaparse/parser "S = AB*
-     AB = A B
-     A = 'a'+
-     B = 'b'+"))
-
 (def formula-parser (instaparse/parser (slurp (io/resource "2019/reactions.ebnf"))))
 
 (defn every-other [xs]
@@ -82,3 +76,18 @@
     :FORMULAE (fn [& fs] (apply merge (every-other fs)))
     }
    (formula-parser s)))
+
+;; (load-formulae (y2019/puzzle-in 14))
+
+;; Expect to cycle through with potentially some backtracking involved.
+;; We likely end up with multiple possible paths with varying amounts of waste, though
+;; we may not since each product has a unique formula. This isn't the sort of thing to
+;; puzzle through at 1:30am, even if it is a weekend.
+;; Keeping track of extras may be sufficient for part 1.
+
+(defn make
+  "Raw requirements to make the desired quantity of the target chemical given available formulae. "
+  [quantity target formulae]
+  )
+
+;; (make 1 :FUEL (load-formula (y2019/puzzle-in 14)))
