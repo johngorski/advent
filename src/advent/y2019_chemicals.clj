@@ -1,7 +1,10 @@
 (ns advent.y2019-chemicals
   (:require
    [advent.y2019 :as y2019]
-   [clojure.string :as string]))
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.string :as string]
+   [instaparse.core :as instaparse]))
 
 (def samples
   [[165
@@ -54,3 +57,25 @@
 7 XCVML => 6 RJRHP
 5 BHXH, 4 VRPVC => 5 LTCX"]])
 
+(def as-and-bs
+  (instaparse/parser "S = AB*
+     AB = A B
+     A = 'a'+
+     B = 'b'+"))
+
+(def formula-parser (instaparse/parser (slurp (io/resource "2019/reactions.ebnf"))))
+
+(defn every-other [xs]
+  (map first (partition-all 2 xs)))
+
+(every-other (range 7)) ;; => (0 2 4 6);
+
+(defn load-formulae [s]
+  (instaparse/transform
+   {:QUANTITY edn/read-string
+    :CHEMICAL keyword
+    :PRODUCT (fn [quant _ chem] {chem quant})
+    :REAGENTS (fn [& rs] (apply merge (every-other rs)))
+;;    :FORMULAE (fn [& fs] )
+    }
+   (formula-parser s)))
