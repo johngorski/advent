@@ -85,9 +85,65 @@
 ;; puzzle through at 1:30am, even if it is a weekend.
 ;; Keeping track of extras may be sufficient for part 1.
 
+(defn batches-needed
+  [quantity-needed batch-size]
+  (+ (quot quantity-needed batch-size)
+     (if (< 0 (rem quantity-needed batch-size)) 1 0)))
+
+(comment
+(batches-needed 1 1) ;; => 1;
+(batches-needed 2 1) ;; => 2;
+(batches-needed 3 2) ;; => 2;
+(batches-needed 12 5) ;; => 3;
+)
+
+(defn reaction-step-from
+  [quantity target formulae]
+  (if (= :ORE target)
+    quantity ;; 1 ORE = 1 ORE
+    (let [formula    (formulae target)
+          batch-size (:quantity formula)
+          reagents   (:reagents formula)
+          batches    (batches-needed quantity batch-size)]
+      (->> (seq reagents)
+           (map (fn [[ingredient needed]]
+                  [(* batches needed) ingredient]))
+           (into {})))))
+
+(reaction-step-from 1 :ORE (load-formulae (second (samples 0)))) ;; => 1;
+
+(let [fs (load-formulae (second (samples 0)))]
+  (reaction-step-from 1 :FUEL fs)) ;; => ([2 :AB] [3 :BC] [4 :CA]);
+
+(reaction-step-from 2 :AB (load-formulae (second (samples 0)))) ;; => ([6 :A] [8 :B]);
+(reaction-step-from 3 :BC (load-formulae (second (samples 0)))) ;; => ([15 :B] [21 :C]);
+(reaction-step-from 4 :CA (load-formulae (second (samples 0)))) ;; => ([16 :C] [4 :A]);
+;; This starts to show where we need to combine to simplify.
+;; If we combine here, we have ([10 :A] [23 :B] [37 :C])
+;; Because of batch sizes, there will be a surplus of {:A 0, :B 1, :C 3}
+;; There's no savings for the batches producing :A, but producing :C is
+;; cheaper as 8 batches of 5 to make 37 than 5 batches for 21 + 4 batches for 16.
+;; 
+
 (defn make
   "Raw requirements to make the desired quantity of the target chemical given available formulae. "
   [quantity target formulae]
-  )
+  (if (= :ORE target)
+    quantity ;; 1 ORE = 1 ORE
+    (let [formula    (formulae target)
+          batch-size (:quantity formula)
+          reagents   (:reagents formula)
+          batches    (batches-needed quantity batch-size)]
+      (reduce + (->> (seq reagents)
+                     (map (fn [[ingredient needed]]
+                            (make (* batches needed) ingredient formulae))))))))
 
-;; (make 1 :FUEL (load-formula (y2019/puzzle-in 14)))
+(seq {:a 1}) ;; => ([:a 1]);
+(load-formulae (second (samples 0)))
+
+(comment
+  (make 1 :ORE (load-formulae (y2019/puzzle-in 14))) ;; => 1;
+  (make 1 :FUEL (load-formulae (second (samples 0)))) ;; => 172;
+;; (make 1 :FUEL (load-formulae (y2019/puzzle-in 14)))
+)
+
