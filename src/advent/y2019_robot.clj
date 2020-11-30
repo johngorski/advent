@@ -4,7 +4,9 @@
    [advent.y2019-intcode :as computer]
    [clojure.string :as string]))
 
-(def brain (-> (y2019/puzzle-in 11) computer/load-program))
+(def brain (-> (y2019/puzzle-in 11)
+               computer/load-program
+               (assoc :output [])))
 
 ;; State node functions, returning their result condition and the updated world.
 ;; Result conditions should be a member of the "condition" column of the state
@@ -15,8 +17,9 @@
     (let [brain'    (computer/run-intcode (dissoc brain :halted))
           world'    (assoc world :brain brain')
           condition (case (:halted brain')
-                      :finished       :need-input ;; This is now poorly-named, since it's now a signal to process output.
+                      :finished       :need-input
                       :awaiting-input :need-input)]
+      (println :output (:output brain'))
       [condition world'])))
 
 (defn append
@@ -26,33 +29,27 @@
     [x]
     (vec (conj coll x))))
 
-(comment
-(rest []) ;; => ();
-(update (update {} :input conj 0) :input conj 1) ;; => {:input (1 0)};
-(update {} :input append 0) ;; => {:input [0]};
-(update (update {} :input append 0) :input append 1) ;; => {:input [0 1]};
-)
-
 (defn current-panel [{:keys [position panels] :as world}]
   (get panels position 0))
 
-(comment
-(current-panel {:panels {} :position [0 0]}) ;; => 0;
-(current-panel {:panels {[0 0] 1} :position [0 0]}) ;; => 1;
-(current-panel {:panels {[0 0] 0} :position [0 0]}) ;; => 0;
-)
+(conj (rest [1 2 3]) 4)
+;; => (4 2 3)
+
+(conj (vec (rest [1 2 3])) 4)
+;; => [2 3 4]
+
+(conj ((comp vec rest) [1 2 3]) 4)
+
+((comp vec rest) [1 2 3])
 
 (defn paint [{:keys [brain panels position] :as world}]
   (let [color   (first (:output brain))
-        brain'  (update brain :output rest)
+        brain'  (update brain :output (comp vec rest))
         panels' (assoc panels position color)
         world'  (assoc world
                        :brain  brain'
                        :panels panels')]
     [:any world']))
-
-(paint {:panels {}, :position [0 0], :brain {:output [0]}}) ;; => [:any {:panels {[0 0] 0}, :position [0 0], :brain {:output ()}}];
-((comp paint second paint) {:panels {}, :position [0 0], :brain {:output [0 1]}}) ;; => [:any {:panels {[0 0] 1}, :position [0 0], :brain {:output ()}}];
 
 (defn move
   [direction [x y]]
@@ -62,11 +59,6 @@
     :down  [x (dec y)]
     :left  [(dec x) y]))
 
-(move :up [0 0]) ;; => [0 1];
-(move :down [0 0]) ;; => [0 -1];
-(move :left [0 0]) ;; => [-1 0];
-(move :right [0 0]) ;; => [1 0];
-
 (defn turn
   [command direction]
   (case command
@@ -75,7 +67,7 @@
         :left  :down
         :down  :right
         :right :up)
-    
+
     1 (case direction
         :up    :right
         :right :down
@@ -84,7 +76,7 @@
 
 (defn turn-move [{:keys [brain position direction] :as world}]
   (let [command    (first (:output brain))
-        brain'     (update brain :output rest)
+        brain'     (update brain :output (comp vec rest))
         direction' (turn command direction)
         position'  (move direction' position)
         world'     (assoc world
@@ -94,10 +86,9 @@
     [:any world']))
 
 (defn process-output [{:keys [brain last-action] :as world}]
-  (if (empty? (:output brain))
-    (let [brain'  (-> brain
-                      (update :input append (current-panel world)))
-          world'  (assoc world :brain brain')
+  (if (empty? (:output brain))  ;; hmm...output is empty...yet we're processing...trouble could be here
+    (let [brain' (update brain :input append (current-panel world))
+          world' (assoc world :brain brain')
           condition :output-empty]
       [condition world'])
     (let [last-action' (case last-action
@@ -107,37 +98,46 @@
 
 (def state-transitions
   ;; start -> condition -> next
-  {:think          {:need-input   :process-output
-                   :finished      :done}
-   :process-output {:output-empty :think
-                   :moved-last    :paint
-                   :painted-last  :turn-move}
-   :paint          {:any          :process-output}
-   :turn-move      {:any          :process-output}})
+  {think
+   {:need-input process-output
+    :finished   :done}
 
+   process-output
+   {:output-empty think
+    :moved-last   paint
+    :painted-last turn-move}
+
+   paint
+   {:any process-output}
+
+   turn-move
+   {:any process-output}})
+
+(comment
 (def effect
   {:think          think
    :process-output process-output
    :paint          paint
    :turn-move      turn-move})
-
-(comment
-(= think think) ;; => true;
-(= think (get-in state-transitions [process-output :output-empty])) ;; => true;
 )
 
 (defn state-machine
-  "Transitions from the current state to the next state until it's done, outputting the final state of the world."
+  "Transitions from the current state to the next state until it's done,
+  outputting the final state of the world."
   [state world]
   (if (= :done state)
     world
-    (let [[condition world'] ((effect state) world)
-          next               (get-in state-transitions [state condition]
-                                     (fn [_]
-                                       (throw (ex-info "State transition missing" {:state state :condition condition }))))]
-      (recur next world'))))
+    (let [[condition world']
+          (state world)  ;; ((effect state) world)
 
-(get-in state-transitions [:think :need-input]) ;; => :process-output;
+          next
+          (get-in state-transitions
+                  [state condition]
+                  (fn [_]
+                    (throw (ex-info "State transition missing"
+                                    {:state state
+                                     :condition condition}))))]
+      (recur next world'))))
 
 (def starting-world
   {:brain       brain
@@ -147,12 +147,12 @@
    :last-action :moved-last})
 
 ;; (state-machine :think starting-world)
-(def final-state (state-machine :think starting-world))
+(def final-state (state-machine think starting-world))
 
 (defn clip-state [world]
   (-> world
-    (dissoc :panels)
-    (update :brain #(dissoc % :mem))))
+      (dissoc :panels)
+      (update :brain #(dissoc % :mem))))
 
 (defn hull-bounds [panels]
   (let [painted (keys panels)]
@@ -160,8 +160,6 @@
      :right  (apply max (map first painted))
      :top    (apply max (map second painted))
      :bottom (apply min (map second painted))}))
-
-(hull-bounds {[0 -1] 1, [-1 -1] 1, [1 0] 1, [1 1] 1, [0 0] 0}) ;; => {:left -1, :right 1, :top 1, :bottom -1};
 
 (defn draw-hull [panels]
   (let [{:keys [left right top bottom]} (hull-bounds panels)]
@@ -187,18 +185,15 @@
 
 (defn test-outputs
   [outputs]
-  (state-machine :process-output (assoc starting-world :brain {:output outputs :halted :finished} :last-action :moved-last)))
-
-(test-outputs [1 0 0 0 1 0 1 0 0 1 1 0 1 0])
-;; => {:brain {:output (), :halted :finished, :input [0]},
-;;     :position [0 1],
-;;     :direction :left,
-;;     :panels {[0 0] 0, [-1 0] 0, [-1 -1] 1, [0 -1] 1, [1 0] 1, [1 1] 1},
-;;     :last-action :moved-last}
+  (state-machine process-output (assoc starting-world
+                                        :brain {:output outputs
+                                                :halted :finished}
+                                        :last-action :moved-last)))
 
 (defn draw-hull [panels]
   (println (hull-string panels)))
 
-(draw-hull (:panels final-state)) ;; => Doesn't quite look alphanumeric....
+(:panels final-state)
+
 
 ;; Come back to day 11 another time, especially if I find Intcode computer problems....
