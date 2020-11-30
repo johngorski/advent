@@ -19,7 +19,7 @@
           condition (case (:halted brain')
                       :finished       :need-input
                       :awaiting-input :need-input)]
-      (println :output (:output brain'))
+      ;; (println :output (:output brain'))
       [condition world'])))
 
 (defn append
@@ -31,16 +31,6 @@
 
 (defn current-panel [{:keys [position panels] :as world}]
   (get panels position 0))
-
-(conj (rest [1 2 3]) 4)
-;; => (4 2 3)
-
-(conj (vec (rest [1 2 3])) 4)
-;; => [2 3 4]
-
-(conj ((comp vec rest) [1 2 3]) 4)
-
-((comp vec rest) [1 2 3])
 
 (defn paint [{:keys [brain panels position] :as world}]
   (let [color   (first (:output brain))
@@ -113,14 +103,6 @@
    turn-move
    {:any process-output}})
 
-(comment
-(def effect
-  {:think          think
-   :process-output process-output
-   :paint          paint
-   :turn-move      turn-move})
-)
-
 (defn state-machine
   "Transitions from the current state to the next state until it's done,
   outputting the final state of the world."
@@ -147,7 +129,9 @@
    :last-action :moved-last})
 
 ;; (state-machine :think starting-world)
-(def final-state (state-machine think starting-world))
+(comment
+  (def final-state (state-machine think starting-world))
+  )
 
 (defn clip-state [world]
   (-> world
@@ -186,14 +170,19 @@
 (defn test-outputs
   [outputs]
   (state-machine process-output (assoc starting-world
-                                        :brain {:output outputs
-                                                :halted :finished}
-                                        :last-action :moved-last)))
+                                       :brain {:output outputs
+                                               :halted :finished}
+                                       :last-action :moved-last)))
 
 (defn draw-hull [panels]
   (println (hull-string panels)))
 
-(:panels final-state)
+(comment
+  (count (:panels final-state))
+  )
 
-
+(comment
+  "part 2"
+  (draw-hull (:panels (state-machine think (assoc starting-world :panels {[0 0] 1}))))
+  )
 ;; Come back to day 11 another time, especially if I find Intcode computer problems....
