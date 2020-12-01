@@ -47,6 +47,7 @@
   (draw-hull (:panels final-state))
   ;; => Doesn't quite look alphanumeric....
   (keys final-state)
+  (count (:panels final-state))
   (dissoc final-state :brain :panels)
   ;; => {:position [9 46], :direction :left, :last-action :moved-last}
   (dissoc (:brain final-state) :mem)

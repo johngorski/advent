@@ -46,8 +46,8 @@
 (defn day2-output [noun verb]
   (get-in
    (computer/run-intcode {:pc 0 :mem (-> (vec in-2)
-                                        (assoc 1 noun)
-                                        (assoc 2 verb))})
+                                         (assoc 1 noun)
+                                         (assoc 2 verb))})
    [:mem 0]))
 
 (comment
@@ -232,8 +232,8 @@
        (into {})))
 
 (comment
-(parse-orbit "C)D") ;; => ["C" "D"] -- "D orbits C"
-)
+  (parse-orbit "C)D") ;; => ["C" "D"] -- "D orbits C"
+  )
 
 (def sample-6 "COM)B
 B)C
@@ -248,18 +248,18 @@ J)K
 K)L")
 
 (comment
-(parse-orbit sample-6)
+  (parse-orbit sample-6)
 
-(let [sample (parse-orbit sample-6)]
-  (count (sort (into #{} (concat (keys sample) (vals sample))))))
-)
+  (let [sample (parse-orbit sample-6)]
+    (count (sort (into #{} (concat (keys sample) (vals sample))))))
+  )
 
 (defn planets-in-map [m]
   (into #{} (concat (keys m) (vals m))))
 
 (comment
-(count (planets-in-map (parse-orbit sample-6)))
-)
+  (count (planets-in-map (parse-orbit sample-6)))
+  )
 
 (defn orbits-for [planet m]
   (take-while some? (iterate #(get m %) (get m planet))))
@@ -304,10 +304,10 @@ K)YOU
 I)SAN")
 
 (comment
-(transfers-to-santa (parse-orbit sample-6-2)) ;; => 4
+  (transfers-to-santa (parse-orbit sample-6-2)) ;; => 4
 
-(transfers-to-santa day-6-planet-map) ;; => 343
-)
+  (transfers-to-santa day-6-planet-map) ;; => 343
+  )
 
 (def in-7 (vec (map edn/read-string (string/split (slurp (io/resource "2019/7.txt")) #","))))
 (def cold-amplifier {:pc 0 :mem in-7})
@@ -332,25 +332,25 @@ I)SAN")
     (reduce #(%2 %1) 0 runners)))
 
 (comment
-(def mem [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
-(def phases [4,3,2,1,0])
+  (def mem [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])
+  (def phases [4,3,2,1,0])
 
-(mem->computer mem)
-(map #(phased % (mem->computer mem)) phases)
-(def an-amp (first (map #(phased % (mem->computer mem)) phases)))
-(update an-amp :input conj 0)
+  (mem->computer mem)
+  (map #(phased % (mem->computer mem)) phases)
+  (def an-amp (first (map #(phased % (mem->computer mem)) phases)))
+  (update an-amp :input conj 0)
 
-(map amp-runner (map #(phased % (mem->computer mem)) phases))
-(def a-runner (first (map amp-runner (map #(phased % (mem->computer mem)) phases))))
-(a-runner 0)
+  (map amp-runner (map #(phased % (mem->computer mem)) phases))
+  (def a-runner (first (map amp-runner (map #(phased % (mem->computer mem)) phases))))
+  (a-runner 0)
 
 
-(disj #{1} 1)
-(disj #{1} 0)
-(first #{1})
+  (disj #{1} 1)
+  (disj #{1} 0)
+  (first #{1})
 
-(concat [1 2] [3 4])
-)
+  (concat [1 2] [3 4])
+  )
 
 (defn permutations [head set-of-things]
   (if (empty? set-of-things)
@@ -358,14 +358,14 @@ I)SAN")
     (mapcat #(permutations (conj head %) (disj set-of-things %)) set-of-things)))
 
 (comment
-(permutations [:head] #{1 2 3})
-(permutations [1] #{})
-(permutations [] #{1})
-(permutations [1 2] #{3})
-(permutations [1] #{2 3})
+  (permutations [:head] #{1 2 3})
+  (permutations [1] #{})
+  (permutations [] #{1})
+  (permutations [1 2] #{3})
+  (permutations [1] #{2 3})
 
-(permutations [] (into #{} (range 5)))
-)
+  (permutations [] (into #{} (range 5)))
+  )
 
 ;; Day 7 part 1
 (apply max (map #(thrust-from in-7 %) (permutations [] (into #{} (range 5))))) ; => 199988
@@ -373,12 +373,12 @@ I)SAN")
 ;; Day 7 part 2
 
 (comment
-(count (permutations [] (into #{} (range 5 10))))
-(take 10 (permutations [] (into #{} (range 1000)))) ;; recursion blows stack.
-(concat [1 2] [3 4])
-(concat [1 2] nil)
-(concat () [1])
-)
+  (count (permutations [] (into #{} (range 5 10))))
+  (take 10 (permutations [] (into #{} (range 1000)))) ;; recursion blows stack.
+  (concat [1 2] [3 4])
+  (concat [1 2] nil)
+  (concat () [1])
+  )
 
 ;; .  prepend output from previous amp to input
 ;; . run until halted
@@ -398,8 +398,8 @@ I)SAN")
    :phases [9,8,7,6,5]})
 
 (comment
-(run-amp-segment [0] (phased (first (:phases sample-7-2)) (mem->computer (:mem sample-7-2))))
-)
+  (run-amp-segment [0] (phased (first (:phases sample-7-2)) (mem->computer (:mem sample-7-2))))
+  )
 
 (defn amp-loop-runner [previous-output [head-amp & tail-amps] last-amp-label]
   (when head-amp
@@ -419,11 +419,11 @@ I)SAN")
 (defn labeled [n cpu] (map-indexed #(assoc %2 :label %1) (repeat n cpu)))
 
 (comment
-(labeled 4 {})
-(conj (conj nil 1) 2)
-(map + [1 2 3] [2 1 3])
-(empty? nil)
-)
+  (labeled 4 {})
+  (conj (conj nil 1) 2)
+  (map + [1 2 3] [2 1 3])
+  (empty? nil)
+  )
 
 (defn thrust-from-amp-loop [mem phases]
   (let [n-amps  (count phases)
@@ -445,30 +445,30 @@ I)SAN")
   (map edn/read-string (string/split s #"")))
 
 (comment
-(string/split "123" #"")
-(str->digits "123456789012")
-)
+  (string/split "123" #"")
+  (str->digits "123456789012")
+  )
 
 (defn layers [w h ds]
   (partition (* w h) ds))
 
 (comment
-(layers 3 2 (str->digits "123456789012"))
-)
+  (layers 3 2 (str->digits "123456789012"))
+  )
 
 (def in-8 (slurp (io/resource "2019/8.txt")))
 
 ;; day 8 part 1
 (comment
-(let [fewest-0s (apply min-key
-                     #(count (filter (fn [pxl] (= 0 pxl)) %))
-                     (layers 25 6 (str->digits in-8)))
-      ones (count (filter #(= 1 %) fewest-0s))
-      twos (count (filter #(= 2 %) fewest-0s))]
-  (* ones twos))
+  (let [fewest-0s (apply min-key
+                         #(count (filter (fn [pxl] (= 0 pxl)) %))
+                         (layers 25 6 (str->digits in-8)))
+        ones (count (filter #(= 1 %) fewest-0s))
+        twos (count (filter #(= 2 %) fewest-0s))]
+    (* ones twos))
 
-(count (layers 25 6 (str->digits in-8)))
-)
+  (count (layers 25 6 (str->digits in-8)))
+  )
 
 (defn parse-image
   "parse images to layers"
@@ -479,16 +479,16 @@ I)SAN")
        vec))
 
 (comment
-(parse-image 3 2 "123456789012") ; => (((1 2 3) (4 5 6)) ((7 8 9)(0 1 2)))
+  (parse-image 3 2 "123456789012") ; => (((1 2 3) (4 5 6)) ((7 8 9)(0 1 2)))
 
-(parse-image 2 2 "0222112222120000") ;; => (((0 2) (2 2)) ((1 1) (2 2)) ((2 2) (1 2)) ((0 0) (0 0)))
+  (parse-image 2 2 "0222112222120000") ;; => (((0 2) (2 2)) ((1 1) (2 2)) ((2 2) (1 2)) ((0 0) (0 0)))
 
-(get-in [[1]] [0 0])
+  (get-in [[1]] [0 0])
 
-(get-in (parse-image 2 2 "0222112222120000") [1  ])
+  (get-in (parse-image 2 2 "0222112222120000") [1  ])
 
-(map * [2 5] [3 7])
-)
+  (map * [2 5] [3 7])
+  )
 
 (defn merge-row [top-row bottom-row]
   (vec (map #(if (= 2 %1) %2 %1) top-row bottom-row)))
@@ -500,26 +500,26 @@ I)SAN")
   (reduce merge-layer image))
 
 (comment
-(compile-image (parse-image 2 2 "0222112222120000"))
-)
+  (compile-image (parse-image 2 2 "0222112222120000"))
+  )
 
 (defn image->ascii [[& rows]]
   (string/join "\n" (map string/join rows)))
 
 (comment
-(image->ascii (compile-image (parse-image 2 2 "0222112222120000")))
+  (image->ascii (compile-image (parse-image 2 2 "0222112222120000")))
 
-(image->ascii (compile-image (parse-image 25 6 in-8)))
+  (image->ascii (compile-image (parse-image 25 6 in-8)))
 
-;; Day 8 part 2
-(println
- (apply str
-        (map #(case %
-                \0 " "
-                \1 "*"
-                %)
-             (seq (image->ascii (compile-image (parse-image 25 6 in-8)))))))
-)
+  ;; Day 8 part 2
+  (println
+   (apply str
+          (map #(case %
+                  \0 " "
+                  \1 "*"
+                  %)
+               (seq (image->ascii (compile-image (parse-image 25 6 in-8)))))))
+  )
 
 (def in-9 (vec (map edn/read-string (string/split (slurp (io/resource "2019/9.txt")) #","))))
 
@@ -559,8 +559,8 @@ I)SAN")
   (string/split s #"\n"))
 
 (comment
-(rows sample-10-1)
-)
+  (rows sample-10-1)
+  )
 
 (defn idx-cols [row]
   (->> row
@@ -585,12 +585,12 @@ I)SAN")
        set))
 
 (comment
-(asteroids sample-10-1)
-(some? [1 2])
-(empty? [])
-(seq [])
-(seq [1 2])
-)
+  (asteroids sample-10-1)
+  (some? [1 2])
+  (empty? [])
+  (seq [])
+  (seq [1 2])
+  )
 
 (defn visible-from [a a-set]
   (->> (disj a-set a)
@@ -602,32 +602,32 @@ I)SAN")
   (apply max (map #(visible-from % as) as)))
 
 (comment
-(max-visible (asteroids sample-10-1)) ;; => 8
-)
+  (max-visible (asteroids sample-10-1)) ;; => 8
+  )
 
 (defn puzzle-in [day] (slurp (io/resource (str "2019/" day ".txt"))))
 
 (comment
-(asteroids (puzzle-in 10))
+  (asteroids (puzzle-in 10))
 
-(max-visible (asteroids (puzzle-in 10))) ;; => 269
+  (max-visible (asteroids (puzzle-in 10))) ;; => 269
 
-(let [asteroid-field (asteroids (puzzle-in 10))
-      sees (fn [asteroid] (visible-from asteroid asteroid-field))]
-  (apply (partial max-key sees) asteroid-field))
-)
+  (let [asteroid-field (asteroids (puzzle-in 10))
+        sees (fn [asteroid] (visible-from asteroid asteroid-field))]
+    (apply (partial max-key sees) asteroid-field))
+  )
 
 (defn best-station [asteroid-field]
   (let [sees (fn [asteroid] (visible-from asteroid asteroid-field))]
     (apply (partial max-key sees) asteroid-field)))
 
 (comment
-(best-station (asteroids sample-10-1)) ;; => [3 4]
+  (best-station (asteroids sample-10-1)) ;; => [3 4]
 
-(best-station (asteroids (puzzle-in 10))) ;; [13 17]
+  (best-station (asteroids (puzzle-in 10))) ;; [13 17]
 
-(visible-from [13 17] (asteroids (puzzle-in 10)))
-)
+  (visible-from [13 17] (asteroids (puzzle-in 10)))
+  )
 
 ;; Laser portion: from the best station, merge a map of the other asteroids based
 ;; on their asteroid-slope from the station. Merge with a function that inserts
@@ -646,8 +646,8 @@ I)SAN")
              [k v])))
 
 (comment
-(keys {:a 1, :b 2})
-)
+  (keys {:a 1, :b 2})
+  )
 
 (defn map-values [f m]
   (reduce #(update %1 %2 f) m (keys m)))
@@ -655,24 +655,24 @@ I)SAN")
 (map-values even? {:a 1, :b 2})
 
 (comment
-(defn asteroids-by-direction
+  (defn asteroids-by-direction
 
-  [station asteroid-field]
-  (->>
-   (for [asteroid (disj asteroid-field station)]
-     {(asteroid-slope station asteroid) #{asteroid}})
-   (apply merge-with sets/union)))
+    [station asteroid-field]
+    (->>
+     (for [asteroid (disj asteroid-field station)]
+       {(asteroid-slope station asteroid) #{asteroid}})
+     (apply merge-with sets/union)))
 
-(defn asteroids-by-direction
+  (defn asteroids-by-direction
 
-  [station asteroid-field]
-  (->>
-   (disj asteroid-field station)
-   (map (juxt #(asteroid-slope station %) identity))
-   (map (fn [[{:keys [direction slope]} coordinates]]
-          {direction {slope #{coordinates}}}))
-   (apply merge-with sets/union)))
-)
+    [station asteroid-field]
+    (->>
+     (disj asteroid-field station)
+     (map (juxt #(asteroid-slope station %) identity))
+     (map (fn [[{:keys [direction slope]} coordinates]]
+            {direction {slope #{coordinates}}}))
+     (apply merge-with sets/union)))
+  )
 
 ;; Crap: This is a group-by! That was a fun 90 minutes.
 (defn asteroids-by-direction
@@ -681,8 +681,8 @@ I)SAN")
   (group-by #(asteroid-slope station %) (disj asteroid-field station)))
 
 (comment
-(asteroids-by-direction [8 3] (asteroids sample-10-2))
-)
+  (asteroids-by-direction [8 3] (asteroids sample-10-2))
+  )
 
 (def directions [:above :right :below :left])
 
@@ -695,11 +695,11 @@ I)SAN")
             #(assoc-in % [direction slope] (sort-by (fn [asteroid] (manhattan station asteroid)) asteroids)))))
 
 (comment
-(manhattan [8 3] [8 0]) ;; => 3;
-(manhattan [8 3] [8 1]) ;; => 2;
+  (manhattan [8 3] [8 0]) ;; => 3;
+  (manhattan [8 3] [8 1]) ;; => 2;
 
-(vaporization-table [8 3] (asteroids sample-10-2))
-)
+  (vaporization-table [8 3] (asteroids sample-10-2))
+  )
 
 (def sample-10-2
   ".#....#####...#..
@@ -759,20 +759,20 @@ I)SAN")
   (update vt dir #(map-values rest %)))
 
 (comment
-(rest-below {:below {:! [1 2]}})
-(rest-dir :below {:below {:! [1 2]}})
-(map-values rest {:! [1 2]})
-(update {:below {:! [1 2]}} :below #(map-values rest %))
-(rest-dir :right {:right {1 [2 3], 4 [5 6]}, :left {7 [8 9]}})
-(rest nil)
-(seq nil)
-(rest-dir :right {:right []})
+  (rest-below {:below {:! [1 2]}})
+  (rest-dir :below {:below {:! [1 2]}})
+  (map-values rest {:! [1 2]})
+  (update {:below {:! [1 2]}} :below #(map-values rest %))
+  (rest-dir :right {:right {1 [2 3], 4 [5 6]}, :left {7 [8 9]}})
+  (rest nil)
+  (seq nil)
+  (rest-dir :right {:right []})
 
-;; After the quadrant seq is exhausted through the first layer, it moves to the next.
-;; The vaporized asteroids are, of course, vaporized.
-;; Directions cycle as in this example:
-(take 8 (cycle directions))
-)
+  ;; After the quadrant seq is exhausted through the first layer, it moves to the next.
+  ;; The vaporized asteroids are, of course, vaporized.
+  ;; Directions cycle as in this example:
+  (take 8 (cycle directions))
+  )
 
 (def clockwise-successor
   {:above :right
@@ -785,25 +785,25 @@ I)SAN")
 (defn laser-seq
   [dir vt]
   (let [target-fn (case dir
-                  :above next-above
-                  :right next-right
-                  :below next-below
-                  :left next-left)
+                    :above next-above
+                    :right next-right
+                    :below next-below
+                    :left next-left)
         targets (filter identity (target-fn vt))
         next-vt (rest-dir dir vt)]
     (concat targets (lazy-seq (laser-seq (clockwise-successor dir) next-vt)))))
 
 (comment
-(take 10 (laser-seq :above (vaporization-table [8 3] (asteroids sample-10-2))))
+  (take 10 (laser-seq :above (vaporization-table [8 3] (asteroids sample-10-2))))
 
-(concat nil [1 2] nil [3 4])
-(first [])
+  (concat nil [1 2] nil [3 4])
+  (first [])
 
-(best-station (asteroids (puzzle-in 10)))
-(first (drop 199 (laser-seq :above (vaporization-table [13 17] (asteroids (puzzle-in 10)))))) ;; => [6 12]
+  (best-station (asteroids (puzzle-in 10)))
+  (first (drop 199 (laser-seq :above (vaporization-table [13 17] (asteroids (puzzle-in 10)))))) ;; => [6 12]
 
-(def sample-10-3
-  ".#..##.###...#######
+  (def sample-10-3
+    ".#..##.###...#######
 ##.############..##.
 .#.######.########.#
 .###.#######.####.#.
@@ -825,9 +825,9 @@ I)SAN")
 ###.##.####.##.#..##
 ")
 
-(best-station  (asteroids sample-10-3))
-(first (drop 199 (laser-seq :above (vaporization-table [11 13] (asteroids sample-10-3)))))
-)
+  (best-station  (asteroids sample-10-3))
+  (first (drop 199 (laser-seq :above (vaporization-table [11 13] (asteroids sample-10-3)))))
+  )
 ;; Yowza, that was quite the part 2
 
 ;; Day 11

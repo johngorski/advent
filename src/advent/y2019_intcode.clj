@@ -1,20 +1,19 @@
 (ns advent.y2019-intcode
   (:require
    [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [clojure.string :as string]))
 
 (comment
-(assoc [1] 4 9) ;; => Intcode should be able to write memory out-of-bounds in the positive direction
-(assoc [1] 1 9) ;; => Going one beyond doesn't trigger it, but it should be fixed either way
-(get [1] 4) ;; => Intcode should read memory beyond its bounds in the positive direction as 0
-(into [0 0 0 0 0 0 0 0] [2 2 2 2 2])
-)
+  (assoc [1] 4 9) ;; => Intcode should be able to write memory out-of-bounds in the positive direction
+  (assoc [1] 1 9) ;; => Going one beyond doesn't trigger it, but it should be fixed either way
+  (get [1] 4) ;; => Intcode should read memory beyond its bounds in the positive direction as 0
+  (into [0 0 0 0 0 0 0 0] [2 2 2 2 2])
+  )
 
 (defn load-program [prog-str]
   {:pc 0
    :mem (vec (map edn/read-string (string/split prog-str #",")))
-  })
+   })
 
 (defn put [dst value]
   (fn [memory]
@@ -75,7 +74,7 @@
                         relative-base)
                        0))
                (first input))
-         :input rest})
+         :input (comp vec rest)})
       4 ;; output
       {:pc (++ 2)
        :output #(conj (or % []) (param 0))}
@@ -106,7 +105,7 @@
             (decode computer))
     (catch Exception e
       (assoc (dissoc computer :mem)  :halted {:pc++ (subvec (:mem computer) (:pc computer) (+ 4 (:pc computer)))
-                               :crashed e}))))
+                                              :crashed e}))))
 
 (defn run-intcode
   "Runs Intcode computers from the given state, returning the state in which it halts."

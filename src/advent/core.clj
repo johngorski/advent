@@ -1,3 +1,4 @@
+
 (ns advent.core
   (:require [clojure.edn :as edn]))
 
