@@ -90,3 +90,53 @@
 
   (count (filter (comp :valid? parse-2) day2));; => 699
   )
+
+(comment
+  "day 3"
+
+  (take 20 (iterate #(rem (+ 3 %) 20) 0))
+
+  (def day3 (-> (puzzle-in 3) (string/split #"\n")))
+
+  (count (first day3));; => 31
+
+  (map + [1 2 3] [4 5 6 7]);; => (5 7 9)
+
+  (def slope (iterate #(rem (+ 3 %) (count (first day3))) 0))
+
+  (take 20 slope)
+  ;; => (0 3 6 9 12 15 18 21 24 27 30 2 5 8 11 14 17 20 23 26)
+
+  (vec [1 2])
+
+  (map #(vec [%1 %2]) day3 slope)
+
+  (count (filter #(= \# %) (map #(nth %1 %2) day3 slope)));; => 225
+
+  (defn slp [run]
+    (iterate #(rem (+ run %) (count (first day3))) 0))
+
+  (take 20 (slp 5));; => (0 5 10 15 20 25 30 4 9 14 19 24 29 3 8 13 18 23 28 2)
+
+  (defn trees [run]
+    (count (filter #(= \# %) (map #(nth %1 %2) day3 (slp run)))))
+
+  (trees 3);; => 225
+
+  (map trees [1 3 5 7]);; => (60 225 57 58)
+
+  (def even-trees
+    (count (filter #(= \# %) (map #(nth %1 %2)
+                                  (map first (partition 1 2 day3))
+                                  (slp 1)))))
+
+  even-trees
+  ;; => 25
+
+  (map first (partition 1 2 (range 10)))
+  ;; => (0 2 4 6 8)
+
+  (* 25 60 225 57 58)
+  ;; => 1115775000
+  )
+
