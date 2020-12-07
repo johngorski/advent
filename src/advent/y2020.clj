@@ -1,8 +1,11 @@
-(ns advent.y2020
+>(ns advent.y2020
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.string :as string]))
+   [clojure.set :as set]
+   [clojure.string :as string]
+   [clojure.spec.alpha :as spec]
+   [instaparse.core :as insta]))
 
 (defn puzzle-in [day] (slurp (io/resource (str "2020/" day ".txt"))))
 
@@ -138,5 +141,231 @@
 
   (* 25 60 225 57 58)
   ;; => 1115775000
+  )
+
+(comment
+  "day 4"
+
+  (def as-and-bs
+    (insta/parser
+     "S = AB*
+     AB = A B
+     A = 'a'+
+     B = 'b'+"))
+
+  (as-and-bs "aaaaabbbaaaabb")
+  ;; => [:S [:AB [:A "a" "a" "a" "a" "a"] [:B "b" "b" "b"]] [:AB [:A "a" "a" "a" "a"] [:B "b" "b"]]]
+
+  (def day4 (-> (puzzle-in 4) (string/split #"\n\n")))
+  (last (butlast day4))
+  ;; => "ecl:lzr\nhgt:177in eyr:2037 pid:175cm\nbyr:2023 hcl:03b398 iyr:2026"
+
+  (def passport
+    (insta/parser
+     "passport = (field space)* field space?
+    space = ' ' | '\n'
+    field = key ':' value
+    key = 'byr' | 'iyr' | 'eyr' | 'hgt' | 'hcl' | 'ecl' | 'pid' | 'cid'
+    value = #'[^\\s]+'
+    "))
+
+  (passport (last (butlast day4)))
+  (comment
+    [:passport
+     [:field [:key "ecl"] ":" [:value "lzr"]]
+     [:space "\n"]
+     [:field [:key "hgt"] ":" [:value "177in"]]
+     [:space " "]
+     [:field [:key "eyr"] ":" [:value "2037"]]
+     [:space " "]
+     [:field [:key "pid"] ":" [:value "175cm"]]
+     [:space "\n"]
+     [:field [:key "byr"] ":" [:value "2023"]]
+     [:space " "]
+     [:field [:key "hcl"] ":" [:value "03b398"]]
+     [:space " "]
+     [:field [:key "iyr"] ":" [:value "2026"]]])
+
+  (passport (first day4))
+  (comment
+    [:passport
+     [:field [:key "byr"] ":" [:value "1971"]]
+     [:space "\n"]
+     [:field [:key "ecl"] ":" [:value "hzl"]]
+     [:space " "]
+     [:field [:key "pid"] ":" [:value "112040163"]]
+     [:space "\n"]
+     [:field [:key "eyr"] ":" [:value "2023"]]
+     [:space " "]
+     [:field [:key "iyr"] ":" [:value "2019"]]
+     [:space "\n"]
+     [:field [:key "hcl"] ":" [:value "#b6652a"]]
+     [:space " "]
+     [:field [:key "hgt"] ":" [:value "167cm"]]])
+
+  (get :q 0)
+
+  (defn ->map [pprt]
+    (let [fields (map first (partition 1 2 (drop 1 pprt)))
+          ]
+      (into {} (map (fn [[_ [_ key] _ [_ value]]] [key value]) fields))
+      ))
+
+  (->map (passport (first day4)))
+  (comment
+    {"byr" "1971",
+     "ecl" "hzl",
+     "pid" "112040163",
+     "eyr" "2023",
+     "iyr" "2019",
+     "hcl" "#b6652a",
+     "hgt" "167cm"})
+
+  (keys (->map (passport (first day4))))
+  ;; => ("byr" "ecl" "pid" "eyr" "iyr" "hcl" "hgt")
+
+  (keys {:a 1 :b 2})
+  set/difference
+  disj
+
+  (disj #{:a :b :c :d :e} :a :c :e)
+  ;; => #{:b :d}
+
+  (defn valid-passport? [pprt-map]
+    (= #{} (apply (partial disj #{"byr" "ecl" "pid" "eyr" "iyr" "hcl" "hgt"}) (keys pprt-map))))
+
+  ;; (count (filter (comp valid-passport? ->map passport) day4))
+
+  ((comp valid-passport? ->map passport) (first day4))
+  ;; => true
+
+  (->> day4
+
+       (map (comp ->map passport))
+
+
+       (take 256) ;; Why is it the 257th fails while the first 256 are fine?
+
+       )
+
+  (->> (get day4 256)
+       passport
+       ->map)
+  ;; => {"hgt" "165in", "ecl" "#db642f", "iyr" "2014", "eyr" "2020", "byr" "1955", "hcl" "371f72", "pid" "756089060"}
+
+  ;; => [:passport [:field [:key "hgt"] ":" [:value "165in"]] [:space " "] [:field [:key "ecl"] ":" [:value "#db642f"]] [:space " "] [:field [:key "iyr"] ":" [:value "2014"]] [:space "\n"] [:field [:key "eyr"] ":" [:value "2020"]] [:space "\n"] [:field [:key "byr"] ":" [:value "1955"]] [:space " "] [:field [:key "hcl"] ":" [:value "371f72"]] [:space " "] [:field [:key "pid"] ":" [:value "756089060"]]]
+
+  (->> (get day4 258)
+       passport
+       ->map)
+
+  (count day4)
+  ;; => 259
+
+  (last day4)
+  ;; => "iyr:2017 ecl:blu byr:1942 hcl:#733820 eyr:2023 hgt:151cm pid:289923625\n"
+
+  (last (butlast day4))
+  ;; => "ecl:lzr\nhgt:177in eyr:2037 pid:175cm\nbyr:2023 hcl:03b398 iyr:2026"
+
+  (->> day4
+       (map (comp ->map passport))
+       (filter valid-passport?)
+       count)
+  ;; => 192
+
+  (defn year-range [low high]
+    (spec/and
+     #(re-matches #"\d\d\d\d" %)
+     #(<= low (edn/read-string %) high)
+     ))
+
+  (spec/def ::byr (year-range 1920 2002))
+
+  (spec/valid? ::byr "1984")
+  ;; => true
+
+  (spec/def ::iyr (year-range 2010 2020))
+
+  (spec/def ::eyr (year-range 2020 2030))
+
+  (re-matches #"(\d+)(cm|in)" "190cm")
+  ;; => ["190cm" "190" "cm"]
+
+  (spec/def ::hgt
+    #(when-let [[_ amount unit] (re-matches #"(\d+)(cm|in)" %)]
+       (if (= "cm" unit)
+         (<= 150 (edn/read-string amount) 193)
+         (<= 59 (edn/read-string amount) 76))))
+
+  (spec/valid? ::hgt "190cm")
+  (spec/valid? ::hgt "72in")
+
+  (spec/def ::hcl #(re-matches #"#[0-9a-f]{6}" %))
+
+  (spec/valid? ::hcl "#1a2b3c");; => true
+
+  (spec/def ::ecl #(re-matches #"(amb|blu|brn|gry|grn|hzl|oth)" %))
+
+  (spec/valid? ::ecl "oth");; => true
+
+  (spec/def ::pid #(re-matches #"\d{9}" %))
+
+  (spec/def ::passport
+    (spec/keys :req-un [::byr ::iyr ::eyr ::hgt ::hcl ::ecl ::pid]))
+
+  (spec/valid? ::byr "1984")
+  (spec/valid? ::iyr "2015")
+  (spec/valid? ::eyr "2025")
+  (spec/valid? ::hgt "190cm")
+  (spec/valid? ::hcl "#00ff00")
+  (spec/valid? ::ecl "brn")
+  (spec/valid? ::pid "012345678")
+
+  (spec/valid?
+   ::passport
+   {::byr "1984"
+    ::iyr "2015"
+    ::eyr "2025"
+    ::hgt "190cm"
+    ::hcl "#00ff00"
+    ::ecl "brn"
+    ::pid "012345678"})
+
+  (spec/valid?
+   ::passport
+   {:byr "1984"
+    :iyr "2015"
+    :eyr "2025"
+    :hgt "190cm"
+    :hcl "#00ff00"
+    :ecl "brn"
+    :pid "012345678"})
+  ;; => true
+
+  (spec/valid?
+   ::passport
+   {:byr "1984"
+    :iyr "2015"
+    :eyr "2025"
+    :hgt "190cm"
+    :hcl "#00ff00"
+    :ecl "brn"
+    :pid "012345678"})
+
+  (keyword "abc")
+  ;; => :abc
+
+  (defn -->map [pprt]
+    (let [fields (map first (partition 1 2 (drop 1 pprt)))
+          ]
+      (into {} (map (fn [[_ [_ key] _ [_ value]]] [(keyword key) value]) fields))
+      ))
+
+  (->> day4
+       (map (comp -->map passport))
+       (filter #(spec/valid? ::passport %))
+       count)
+  ;; => 101
   )
 
