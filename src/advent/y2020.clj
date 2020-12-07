@@ -439,3 +439,41 @@
          )));; => [595 594]
   )
 
+(comment
+  "day 6"
+
+  (def day6 (-> (puzzle-in 6) (string/split #"\n\n")))
+  (take 10 day6)
+
+  (count (set (filter #(not= \newline %) (seq "a\nc"))))
+
+  (defn questions-yes'd [group]
+    (count (set (filter #(not= \newline %) (seq group)))))
+
+  (questions-yes'd "a\nc")
+
+  (reduce + (map questions-yes'd day6))
+  ;; => 6625
+
+  (set/intersection #{:a})
+
+  (defn all-yes'd [group]
+    (->> (string/split group #"\n")
+         (map #(into #{} (seq %)))
+         (apply set/intersection)))
+
+  (all-yes'd "abc")
+  ;; => #{\a \b \c}
+
+  (all-yes'd "a
+b
+c")
+  ;; => #{}
+
+  (all-yes'd "ab
+ac")
+  ;; => #{\a}
+
+  (reduce + (map (comp count all-yes'd) day6));; => 3360
+  )
+
