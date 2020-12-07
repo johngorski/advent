@@ -1,4 +1,4 @@
->(ns advent.y2020
+(ns advent.y2020
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -367,5 +367,75 @@
        (filter #(spec/valid? ::passport %))
        count)
   ;; => 101
+  )
+
+(comment
+  "day 5"
+
+  (re-matches #"(\w{7})(\w{3})" "BFFFBBFRRR")
+
+  (Integer/parseInt "1234" 5)
+  (Integer/parseInt "0110" 2)
+
+  (map {\F 0 \B 1, \L 0, \R 1} (seq "BFFFBBFRRR"))
+
+  (defn seat->number [seat]
+    (let [binary (apply str (map {\F 0 \B 1, \L 0, \R 1} (seq seat)))]
+      (Integer/parseInt binary 2)))
+
+  (seat->number "BFFFBBF")
+  ;; => 70
+  (seat->number "RRR")
+  ;; => 7
+
+  (defn seat-id [pass]
+    (let [[_ r c] (re-matches #"(\w{7})(\w{3})" pass)
+          row (seat->number r)
+          column (seat->number c)]
+      (+ (* 8 row) column))
+    )
+
+  (seat-id "BFFFBBFRRR")
+  ;; => 567
+  ;; => [70 7]
+
+  (seat->number "BFFFBBFRRR")
+
+  (seat-id "FFFBBBFRRR")
+  ;; => 119
+  ;; => [14 7]
+
+  (seat->number "FFFBBBFRRR")
+  ;; => 119
+
+  (seat-id "BBFFBBFRLL")
+  ;; => 820
+  ;; => [102 4]
+
+  (seat->number "BBFFBBFRLL")
+  ;; => 820
+
+  (def day5 (string/split (puzzle-in 5) #"\n"))
+
+  (reduce max (map seat-id day5))
+  ;; => 874
+
+  (reduce min (map seat->number day5));; => 48
+
+  (take 10 (sort (map seat-id day5)))
+  ;; => (48 49 50 51 52 53 54 55 56 57)
+
+  vector
+
+  (def seats (sort (map seat-id day5)))
+  (take 10 seats)
+
+  (first
+   (filter
+    (partial apply not=)
+    (map vector
+         seats
+         (map #(+ 48 %) (range))
+         )));; => [595 594]
   )
 
