@@ -513,6 +513,19 @@ faded blue bags contain no other bags.
 dotted black bags contain no other bags.
 ")
 
+(def sample-rules
+  (bag-rules-ast
+   "light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.
+"))
+
 [{["light" "red"] {["bright" "white"] 1
                    ["muted" "yellow"] 2}}
  ,,,]
@@ -617,3 +630,119 @@ vector?
 (contains? [10 20 30] 2)
 
 (last (butlast (bag-rules-ast (puzzle-in 7))))
+
+(defmulti translate-outards first)
+
+(set/union #{1} #{3})
+
+merge-with
+apply
+
+(defmethod translate-outards :rules [[_ & rules]]
+  ((partial merge-with set/union) (map translate-outards (filter vector? rules))))
+
+(defmethod translate-outards :rule [_ & tokens]
+  (let [[outer _ inners] tokens]
+    (into
+     {}
+     (map
+      (fn [inner] [inner (translate outer)])
+      (translate-outards inners)))))
+
+(defmethod translate-outards :inners [[_ & inners]]
+  (map translate-outards (filter vector? inners)))
+
+(defmethod translate-outards :inner [[_ _ _ outer]]
+  (when outer (translate outer)))
+
+(translate sample-rules)
+(comment
+  {("light" "red")
+   {("bright" "white") 1, ("muted" "yellow") 2},
+
+   ("muted" "yellow")
+   {("shiny" "gold") 2, ("faded" "blue") 9},
+
+   ("dotted" "black") {},
+
+   ("bright" "white")
+   {("shiny" "gold") 1},
+
+   ("shiny" "gold")
+   {("dark" "olive") 1, ("vibrant" "plum") 2},
+
+   ("vibrant" "plum")
+   {("faded" "blue") 5, ("dotted" "black") 6},
+
+   ("dark" "olive")
+   {("faded" "blue") 3, ("dotted" "black") 4},
+
+   ("dark" "orange")
+   {("bright" "white") 3, ("muted" "yellow") 4},
+
+   ("faded" "blue") {}})
+
+(translate-outards sample-rules)
+
+(defn invert [translated-rules]
+  (->> (seq translated-rules)
+       (mapcat (fn [[outer inners]]
+                 (map (fn [inner] {inner #{outer}}) (keys inners))))
+       (apply (partial merge-with set/union))))
+
+(invert (translate sample-rules))
+(comment
+  {("bright" "white")
+   #{("light" "red") ("dark" "orange")},
+
+   ("muted" "yellow")
+   #{("light" "red") ("dark" "orange")},
+
+   ("shiny" "gold")
+   #{("muted" "yellow") ("bright" "white")},
+
+   ("faded" "blue")
+   #{("muted" "yellow") ("vibrant" "plum") ("dark" "olive")},
+
+   ("dark" "olive")
+   #{("shiny" "gold")},
+
+   ("vibrant" "plum")
+   #{("shiny" "gold")},
+
+   ("dotted" "black")
+   #{("vibrant" "plum") ("dark" "olive")}})
+
+(def inverted (invert (translate sample-rules)))
+
+(inverted ["shiny" "gold"])
+;; => #{("muted" "yellow") ("bright" "white")}
+
+(concat nil [1 2])
+;; => (1 2)
+
+(defn eventual-containers [inverted-rules inner-color seen]
+  (if (seen inner-color)
+    []
+    (lazy-seq
+     (let [inner-colors (inverted-rules inner-color)]
+       (concat
+        inner-colors
+        (mapcat #(eventual-containers inverted-rules % (conj seen inner-color)) inner-colors))))))
+
+(take 10 (eventual-containers inverted ["shiny" "gold"] #{}))
+;; => (("muted" "yellow") ("bright" "white") ("light" "red") ("dark" "orange") ("light" "red") ("dark" "orange"))
+
+(into #{} (eventual-containers inverted ["shiny" "gold"] #{}))
+
+(count (into #{} (eventual-containers inverted ["shiny" "gold"] #{})))
+;; => 4
+
+(concat (inverted ["shiny" "gold"]) [3 4])
+;; => (("muted" "yellow") ("bright" "white") 3 4)
+
+(count (into #{} (eventual-containers (invert (translate (bag-rules-ast (puzzle-in 7)))) ["shiny" "gold"] #{})))
+;; => 124
+;; day 7 part 1 answer. nice.
+
+
