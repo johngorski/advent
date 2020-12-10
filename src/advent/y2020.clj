@@ -477,3 +477,143 @@ ac")
   (reduce + (map (comp count all-yes'd) day6));; => 3360
   )
 
+(comment
+  "day7")
+
+
+(def as-and-bs
+  (insta/parser
+   "S = AB*
+     AB = A B
+     A = 'a'+
+     B = 'b'+"))
+
+(as-and-bs "aaab")
+;; => [:S [:AB [:A "a" "a" "a"] [:B "b"]]]
+
+(def bag-rules-ast
+  (insta/parser
+   "rules = rule*
+    rule = outer ' contain ' inners '.\\n'
+    outer = adjective (' ' adjective)* #' bags?'
+    inners = (inner (', ' inner)*) | 'no other bags'
+    inner = #'\\d+' ' ' outer
+    adjective = #'\\w+'
+    "))
+
+(bag-rules-ast
+ "light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.
+")
+
+[{["light" "red"] {["bright" "white"] 1
+                   ["muted" "yellow"] 2}}
+ ,,,]
+
+(defn translate-bag-rule [_ [_ []]]
+  )
+
+(defmulti translate first)
+
+vector?
+
+(defmethod translate :rules [[_ & rules]]
+  (into {} (map translate (filter vector? rules))))
+
+(defmethod translate :rule [[_ & tokens]]
+  (let [[outer _ inners] tokens]
+    [(translate outer) (translate inners)]))
+
+(defmethod translate :outer [[_ & adjs]]
+  (map second (filter vector? adjs)))
+
+(translate [:outer [:adjective "light"] " " [:adjective "red"]])
+
+(mapcat identity (partition 1 2 (range 10)))
+;; => (0 2 4 6 8)
+
+(apply concat (partition 1 2 (range 10)))
+
+(defmethod translate :inners [[& inners]]
+  (into {} (map translate (filter vector? inners))))
+
+(partition 4 (range 20))
+;; => ((0 1 2 3) (4 5 6 7) (8 9 10 11) (12 13 14 15) (16 17 18 19))
+
+(defmethod translate :inner [[_ quantity-str _ outer]]
+  [(translate outer) (edn/read-string quantity-str)])
+
+(def translated
+  (translate
+   [:rules
+    [:rule
+     [:outer
+      [:adjective "light"]
+      " "
+      [:adjective "red"]
+      " bags"]
+     " contain "
+     [:inners
+      [:inner
+       "1"
+       " "
+       [:outer [:adjective "bright"] " " [:adjective "white"] " bag"]]
+      ", "
+      [:inner
+       "2"
+       " "
+       [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]]
+     ".\n"]
+    [:rule [:outer [:adjective "dark"] " " [:adjective "orange"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "bright"] " " [:adjective "white"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]] ".\n"]
+    [:rule [:outer [:adjective "bright"] " " [:adjective "white"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bag"]]] ".\n"] [:rule [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"] " contain " [:inners [:inner "2" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"]] ", " [:inner "9" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]]] ".\n"] [:rule [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "dark"] " " [:adjective "olive"] " bag"]] ", " [:inner "2" " " [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"]]] ".\n"] [:rule [:outer [:adjective "dark"] " " [:adjective "olive"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"] [:rule [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"] " contain " [:inners [:inner "5" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "6" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"]
+    [:rule
+     [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]
+     " contain "
+     [:inners "no other bags"] ".\n"]
+    [:rule
+     [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]
+     " contain "
+     [:inners "no other bags"] ".\n"]]))
+
+(translated (seq ["faded" "blue"]))
+(keys translated)
+
+(comment
+  {("light" "red")
+   {("bright" "white") 1, ("muted" "yellow") 2},
+
+   ("muted" "yellow")
+   {("shiny" "gold") 2,
+    ("faded" "blue") 9},
+
+   ("dotted" "black") {},
+
+   ("bright" "white")
+   {("shiny" "gold") 1},
+
+   ("shiny" "gold")
+   {("dark" "olive") 1, ("vibrant" "plum") 2},
+
+   ("vibrant" "plum")
+   {("faded" "blue") 5, ("dotted" "black") 6},
+
+   ("dark" "olive")
+   {("faded" "blue") 3, ("dotted" "black") 4},
+
+   ("dark" "orange")
+   {("bright" "white") 3, ("muted" "yellow") 4},
+
+   ("faded" "blue") {}})
+
+(translated ["light" "red"])
+
+(contains? [10 20 30] 2)
+
+(last (butlast (bag-rules-ast (puzzle-in 7))))
