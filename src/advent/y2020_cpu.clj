@@ -81,8 +81,8 @@
          (filter #(#{"jmp" "nop"} (first (get prg %))))
          (map (fn [idx]
                 (let [[op arg] (get prg idx)]
-                  (update prg idx (fn [[]] [({"jmp" "nop", "nop" "jmp"} op) arg]))))
-              )))
+                  (assoc prg idx [({"jmp" "nop", "nop" "jmp"} op) arg]))))
+              ))
 
   (defn run-through
     "Runs prg on cpu until an instruction repeats ((:pc prg) has already executed),
