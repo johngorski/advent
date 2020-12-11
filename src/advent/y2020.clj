@@ -802,3 +802,6 @@ dotted black bags contain no other bags.
   ;; => 34862
   )
 
+(comment
+  "day 8")
+
