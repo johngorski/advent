@@ -478,22 +478,11 @@ ac")
   )
 
 (comment
-  "day7")
+  "day7"
 
-
-(def as-and-bs
-  (insta/parser
-   "S = AB*
-     AB = A B
-     A = 'a'+
-     B = 'b'+"))
-
-(as-and-bs "aaab")
-;; => [:S [:AB [:A "a" "a" "a"] [:B "b"]]]
-
-(def bag-rules-ast
-  (insta/parser
-   "rules = rule*
+  (def bag-rules-ast
+    (insta/parser
+     "rules = rule*
     rule = outer ' contain ' inners '.\\n'
     outer = adjective (' ' adjective)* #' bags?'
     inners = (inner (', ' inner)*) | 'no other bags'
@@ -501,19 +490,6 @@ ac")
     adjective = #'\\w+'
     "))
 
-(bag-rules-ast
- "light red bags contain 1 bright white bag, 2 muted yellow bags.
-dark orange bags contain 3 bright white bags, 4 muted yellow bags.
-bright white bags contain 1 shiny gold bag.
-muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
-shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
-dark olive bags contain 3 faded blue bags, 4 dotted black bags.
-vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
-faded blue bags contain no other bags.
-dotted black bags contain no other bags.
-")
-
-(def sample-rules
   (bag-rules-ast
    "light red bags contain 1 bright white bag, 2 muted yellow bags.
 dark orange bags contain 3 bright white bags, 4 muted yellow bags.
@@ -524,225 +500,305 @@ dark olive bags contain 3 faded blue bags, 4 dotted black bags.
 vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.
+")
+
+  (def sample-rules
+    (bag-rules-ast
+     "light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.
 "))
 
-[{["light" "red"] {["bright" "white"] 1
-                   ["muted" "yellow"] 2}}
- ,,,]
+  [{["light" "red"] {["bright" "white"] 1
+                     ["muted" "yellow"] 2}}
+   ,,,]
 
-(defn translate-bag-rule [_ [_ []]]
+  (defn translate-bag-rule [_ [_ []]]
+    )
+
+  (defmulti translate first)
+
+  vector?
+
+  (defmethod translate :rules [[_ & rules]]
+    (into {} (map translate (filter vector? rules))))
+
+  (defmethod translate :rule [[_ & tokens]]
+    (let [[outer _ inners] tokens]
+      [(translate outer) (translate inners)]))
+
+  (defmethod translate :outer [[_ & adjs]]
+    (map second (filter vector? adjs)))
+
+  (translate [:outer [:adjective "light"] " " [:adjective "red"]])
+
+  (mapcat identity (partition 1 2 (range 10)))
+  ;; => (0 2 4 6 8)
+
+  (apply concat (partition 1 2 (range 10)))
+
+  (defmethod translate :inners [[& inners]]
+    (into {} (map translate (filter vector? inners))))
+
+  (partition 4 (range 20))
+  ;; => ((0 1 2 3) (4 5 6 7) (8 9 10 11) (12 13 14 15) (16 17 18 19))
+
+  (defmethod translate :inner [[_ quantity-str _ outer]]
+    [(translate outer) (edn/read-string quantity-str)])
+
+  (def translated
+    (translate
+     [:rules
+      [:rule
+       [:outer
+        [:adjective "light"]
+        " "
+        [:adjective "red"]
+        " bags"]
+       " contain "
+       [:inners
+        [:inner
+         "1"
+         " "
+         [:outer [:adjective "bright"] " " [:adjective "white"] " bag"]]
+        ", "
+        [:inner
+         "2"
+         " "
+         [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]]
+       ".\n"]
+      [:rule [:outer [:adjective "dark"] " " [:adjective "orange"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "bright"] " " [:adjective "white"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]] ".\n"]
+      [:rule [:outer [:adjective "bright"] " " [:adjective "white"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bag"]]] ".\n"] [:rule [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"] " contain " [:inners [:inner "2" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"]] ", " [:inner "9" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]]] ".\n"] [:rule [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "dark"] " " [:adjective "olive"] " bag"]] ", " [:inner "2" " " [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"]]] ".\n"] [:rule [:outer [:adjective "dark"] " " [:adjective "olive"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"] [:rule [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"] " contain " [:inners [:inner "5" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "6" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"]
+      [:rule
+       [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]
+       " contain "
+       [:inners "no other bags"] ".\n"]
+      [:rule
+       [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]
+       " contain "
+       [:inners "no other bags"] ".\n"]]))
+
+  (translated (seq ["faded" "blue"]))
+  (keys translated)
+
+  (comment
+    {("light" "red")
+     {("bright" "white") 1, ("muted" "yellow") 2},
+
+     ("muted" "yellow")
+     {("shiny" "gold") 2,
+      ("faded" "blue") 9},
+
+     ("dotted" "black") {},
+
+     ("bright" "white")
+     {("shiny" "gold") 1},
+
+     ("shiny" "gold")
+     {("dark" "olive") 1, ("vibrant" "plum") 2},
+
+     ("vibrant" "plum")
+     {("faded" "blue") 5, ("dotted" "black") 6},
+
+     ("dark" "olive")
+     {("faded" "blue") 3, ("dotted" "black") 4},
+
+     ("dark" "orange")
+     {("bright" "white") 3, ("muted" "yellow") 4},
+
+     ("faded" "blue") {}})
+
+  (translated ["light" "red"])
+
+  (contains? [10 20 30] 2)
+
+  (last (butlast (bag-rules-ast (puzzle-in 7))))
+
+  (defmulti translate-outards first)
+
+  (set/union #{1} #{3})
+
+  merge-with
+  apply
+
+  (defmethod translate-outards :rules [[_ & rules]]
+    ((partial merge-with set/union) (map translate-outards (filter vector? rules))))
+
+  (defmethod translate-outards :rule [_ & tokens]
+    (let [[outer _ inners] tokens]
+      (into
+       {}
+       (map
+        (fn [inner] [inner (translate outer)])
+        (translate-outards inners)))))
+
+  (defmethod translate-outards :inners [[_ & inners]]
+    (map translate-outards (filter vector? inners)))
+
+  (defmethod translate-outards :inner [[_ _ _ outer]]
+    (when outer (translate outer)))
+
+  (translate sample-rules)
+  (comment
+    {("light" "red")
+     {("bright" "white") 1, ("muted" "yellow") 2},
+
+     ("muted" "yellow")
+     {("shiny" "gold") 2, ("faded" "blue") 9},
+
+     ("dotted" "black") {},
+
+     ("bright" "white")
+     {("shiny" "gold") 1},
+
+     ("shiny" "gold")
+     {("dark" "olive") 1, ("vibrant" "plum") 2},
+
+     ("vibrant" "plum")
+     {("faded" "blue") 5, ("dotted" "black") 6},
+
+     ("dark" "olive")
+     {("faded" "blue") 3, ("dotted" "black") 4},
+
+     ("dark" "orange")
+     {("bright" "white") 3, ("muted" "yellow") 4},
+
+     ("faded" "blue") {}})
+
+  (translate-outards sample-rules)
+
+  (defn invert [translated-rules]
+    (->> (seq translated-rules)
+         (mapcat (fn [[outer inners]]
+                   (map (fn [inner] {inner #{outer}}) (keys inners))))
+         (apply (partial merge-with set/union))))
+
+  (invert (translate sample-rules))
+  (comment
+    {("bright" "white")
+     #{("light" "red") ("dark" "orange")},
+
+     ("muted" "yellow")
+     #{("light" "red") ("dark" "orange")},
+
+     ("shiny" "gold")
+     #{("muted" "yellow") ("bright" "white")},
+
+     ("faded" "blue")
+     #{("muted" "yellow") ("vibrant" "plum") ("dark" "olive")},
+
+     ("dark" "olive")
+     #{("shiny" "gold")},
+
+     ("vibrant" "plum")
+     #{("shiny" "gold")},
+
+     ("dotted" "black")
+     #{("vibrant" "plum") ("dark" "olive")}})
+
+  (def inverted (invert (translate sample-rules)))
+
+  (inverted ["shiny" "gold"])
+  ;; => #{("muted" "yellow") ("bright" "white")}
+
+  (concat nil [1 2])
+  ;; => (1 2)
+
+  (defn eventual-containers [inverted-rules inner-color seen]
+    (if (seen inner-color)
+      []
+      (lazy-seq
+       (let [inner-colors (inverted-rules inner-color)]
+         (concat
+          inner-colors
+          (mapcat #(eventual-containers inverted-rules % (conj seen inner-color)) inner-colors))))))
+
+  (take 10 (eventual-containers inverted ["shiny" "gold"] #{}))
+  ;; => (("muted" "yellow") ("bright" "white") ("light" "red") ("dark" "orange") ("light" "red") ("dark" "orange"))
+
+  (into #{} (eventual-containers inverted ["shiny" "gold"] #{}))
+
+  (count (into #{} (eventual-containers inverted ["shiny" "gold"] #{})))
+  ;; => 4
+
+  (concat (inverted ["shiny" "gold"]) [3 4])
+  ;; => (("muted" "yellow") ("bright" "white") 3 4)
+
+  (count (into #{} (eventual-containers (invert (translate (bag-rules-ast (puzzle-in 7)))) ["shiny" "gold"] #{})))
+  ;; => 124
+  ;; day 7 part 1 answer. nice.
+
+  (def day7
+    (translate (bag-rules-ast (puzzle-in 7))))
+
+  day7
+
+  ;; dynamic programming sounds like a good idea for day 7, part 2
+  ;; ...or, how about substituting with an accumulator + recur?
+
+  (merge-with + {[1 2] 3} {'(1 2) 4})
+
+  (map second {1 2})
+
+  (defn map-values [f m]
+    (into {} (map (fn [[k v]] [k (f v)])) m))
+
+  (map-values inc {:a 1, :b 2})
+  ;; => {:a 2, :b 3}
+
+  (take 4 day7)
+  (comment
+    ([("clear" "green") {("light" "plum") 3, ("wavy" "lavender") 1, ("shiny" "olive") 1}]
+     [("light" "teal") {("striped" "tomato") 5, ("drab" "teal") 5, ("shiny" "lavender") 5}]
+     [("dim" "blue") {("dull" "cyan") 2, ("dull" "purple") 2, ("dark" "indigo") 1}]
+     [("shiny" "blue") {("posh" "maroon") 3}]))
+
+  ;; color :: [string]
+  ;; quantity :: integer
+  ;; bags :: {color quantity} / [[color quantity]]
+  ;; inner-bags :: [{color quantity}]
+
+  (defn open-bags [bag-rules [color quantity]]
+    (->> (bag-rules color) ;; {color quantity}
+         (map-values #(* quantity %))
+         ))
+
+  (open-bags day7 [["clear" "green"] 3])
+  ;; => {("light" "plum") 9, ("wavy" "lavender") 3, ("shiny" "olive") 3}
+
+  (open-bags day7 [["gespacho" "surprise"] 2])
+  ;; => {}
+
+  (map (partial open-bags day7) {["shiny" "gold"] 1})
+  (comment
+    ({("pale" "maroon") 2, ("pale" "purple") 5, ("posh" "brown") 4, ("dotted" "turquoise") 1}))
+
+  (map (partial open-bags day7) {'("pale" "maroon") 2,
+                                 '("pale" "purple") 5,
+                                 '("posh" "brown") 4,
+                                 '("dotted" "turquoise") 1})
+
+  (apply merge-with + (map (partial open-bags day7) {'("pale" "maroon") 2,
+                                                     '("pale" "purple") 5,
+                                                     '("posh" "brown") 4,
+                                                     '("dotted" "turquoise") 1}))
+
+  (defn bags-inside [bag-rules bags-so-far bags]
+    (if (empty? bags)
+      bags-so-far
+      (let [these-bags (reduce + (vals bags))
+            inner-bags (map (partial open-bags bag-rules) bags)
+            bags' (apply merge-with + inner-bags)]
+        (recur bag-rules (+ bags-so-far these-bags) bags'))
+      ))
+
+  (bags-inside day7 -1 {["shiny" "gold"] 1})
+  ;; => 34862
   )
-
-(defmulti translate first)
-
-vector?
-
-(defmethod translate :rules [[_ & rules]]
-  (into {} (map translate (filter vector? rules))))
-
-(defmethod translate :rule [[_ & tokens]]
-  (let [[outer _ inners] tokens]
-    [(translate outer) (translate inners)]))
-
-(defmethod translate :outer [[_ & adjs]]
-  (map second (filter vector? adjs)))
-
-(translate [:outer [:adjective "light"] " " [:adjective "red"]])
-
-(mapcat identity (partition 1 2 (range 10)))
-;; => (0 2 4 6 8)
-
-(apply concat (partition 1 2 (range 10)))
-
-(defmethod translate :inners [[& inners]]
-  (into {} (map translate (filter vector? inners))))
-
-(partition 4 (range 20))
-;; => ((0 1 2 3) (4 5 6 7) (8 9 10 11) (12 13 14 15) (16 17 18 19))
-
-(defmethod translate :inner [[_ quantity-str _ outer]]
-  [(translate outer) (edn/read-string quantity-str)])
-
-(def translated
-  (translate
-   [:rules
-    [:rule
-     [:outer
-      [:adjective "light"]
-      " "
-      [:adjective "red"]
-      " bags"]
-     " contain "
-     [:inners
-      [:inner
-       "1"
-       " "
-       [:outer [:adjective "bright"] " " [:adjective "white"] " bag"]]
-      ", "
-      [:inner
-       "2"
-       " "
-       [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]]
-     ".\n"]
-    [:rule [:outer [:adjective "dark"] " " [:adjective "orange"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "bright"] " " [:adjective "white"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"]]] ".\n"]
-    [:rule [:outer [:adjective "bright"] " " [:adjective "white"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bag"]]] ".\n"] [:rule [:outer [:adjective "muted"] " " [:adjective "yellow"] " bags"] " contain " [:inners [:inner "2" " " [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"]] ", " [:inner "9" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]]] ".\n"] [:rule [:outer [:adjective "shiny"] " " [:adjective "gold"] " bags"] " contain " [:inners [:inner "1" " " [:outer [:adjective "dark"] " " [:adjective "olive"] " bag"]] ", " [:inner "2" " " [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"]]] ".\n"] [:rule [:outer [:adjective "dark"] " " [:adjective "olive"] " bags"] " contain " [:inners [:inner "3" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "4" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"] [:rule [:outer [:adjective "vibrant"] " " [:adjective "plum"] " bags"] " contain " [:inners [:inner "5" " " [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]] ", " [:inner "6" " " [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]]] ".\n"]
-    [:rule
-     [:outer [:adjective "faded"] " " [:adjective "blue"] " bags"]
-     " contain "
-     [:inners "no other bags"] ".\n"]
-    [:rule
-     [:outer [:adjective "dotted"] " " [:adjective "black"] " bags"]
-     " contain "
-     [:inners "no other bags"] ".\n"]]))
-
-(translated (seq ["faded" "blue"]))
-(keys translated)
-
-(comment
-  {("light" "red")
-   {("bright" "white") 1, ("muted" "yellow") 2},
-
-   ("muted" "yellow")
-   {("shiny" "gold") 2,
-    ("faded" "blue") 9},
-
-   ("dotted" "black") {},
-
-   ("bright" "white")
-   {("shiny" "gold") 1},
-
-   ("shiny" "gold")
-   {("dark" "olive") 1, ("vibrant" "plum") 2},
-
-   ("vibrant" "plum")
-   {("faded" "blue") 5, ("dotted" "black") 6},
-
-   ("dark" "olive")
-   {("faded" "blue") 3, ("dotted" "black") 4},
-
-   ("dark" "orange")
-   {("bright" "white") 3, ("muted" "yellow") 4},
-
-   ("faded" "blue") {}})
-
-(translated ["light" "red"])
-
-(contains? [10 20 30] 2)
-
-(last (butlast (bag-rules-ast (puzzle-in 7))))
-
-(defmulti translate-outards first)
-
-(set/union #{1} #{3})
-
-merge-with
-apply
-
-(defmethod translate-outards :rules [[_ & rules]]
-  ((partial merge-with set/union) (map translate-outards (filter vector? rules))))
-
-(defmethod translate-outards :rule [_ & tokens]
-  (let [[outer _ inners] tokens]
-    (into
-     {}
-     (map
-      (fn [inner] [inner (translate outer)])
-      (translate-outards inners)))))
-
-(defmethod translate-outards :inners [[_ & inners]]
-  (map translate-outards (filter vector? inners)))
-
-(defmethod translate-outards :inner [[_ _ _ outer]]
-  (when outer (translate outer)))
-
-(translate sample-rules)
-(comment
-  {("light" "red")
-   {("bright" "white") 1, ("muted" "yellow") 2},
-
-   ("muted" "yellow")
-   {("shiny" "gold") 2, ("faded" "blue") 9},
-
-   ("dotted" "black") {},
-
-   ("bright" "white")
-   {("shiny" "gold") 1},
-
-   ("shiny" "gold")
-   {("dark" "olive") 1, ("vibrant" "plum") 2},
-
-   ("vibrant" "plum")
-   {("faded" "blue") 5, ("dotted" "black") 6},
-
-   ("dark" "olive")
-   {("faded" "blue") 3, ("dotted" "black") 4},
-
-   ("dark" "orange")
-   {("bright" "white") 3, ("muted" "yellow") 4},
-
-   ("faded" "blue") {}})
-
-(translate-outards sample-rules)
-
-(defn invert [translated-rules]
-  (->> (seq translated-rules)
-       (mapcat (fn [[outer inners]]
-                 (map (fn [inner] {inner #{outer}}) (keys inners))))
-       (apply (partial merge-with set/union))))
-
-(invert (translate sample-rules))
-(comment
-  {("bright" "white")
-   #{("light" "red") ("dark" "orange")},
-
-   ("muted" "yellow")
-   #{("light" "red") ("dark" "orange")},
-
-   ("shiny" "gold")
-   #{("muted" "yellow") ("bright" "white")},
-
-   ("faded" "blue")
-   #{("muted" "yellow") ("vibrant" "plum") ("dark" "olive")},
-
-   ("dark" "olive")
-   #{("shiny" "gold")},
-
-   ("vibrant" "plum")
-   #{("shiny" "gold")},
-
-   ("dotted" "black")
-   #{("vibrant" "plum") ("dark" "olive")}})
-
-(def inverted (invert (translate sample-rules)))
-
-(inverted ["shiny" "gold"])
-;; => #{("muted" "yellow") ("bright" "white")}
-
-(concat nil [1 2])
-;; => (1 2)
-
-(defn eventual-containers [inverted-rules inner-color seen]
-  (if (seen inner-color)
-    []
-    (lazy-seq
-     (let [inner-colors (inverted-rules inner-color)]
-       (concat
-        inner-colors
-        (mapcat #(eventual-containers inverted-rules % (conj seen inner-color)) inner-colors))))))
-
-(take 10 (eventual-containers inverted ["shiny" "gold"] #{}))
-;; => (("muted" "yellow") ("bright" "white") ("light" "red") ("dark" "orange") ("light" "red") ("dark" "orange"))
-
-(into #{} (eventual-containers inverted ["shiny" "gold"] #{}))
-
-(count (into #{} (eventual-containers inverted ["shiny" "gold"] #{})))
-;; => 4
-
-(concat (inverted ["shiny" "gold"]) [3 4])
-;; => (("muted" "yellow") ("bright" "white") 3 4)
-
-(count (into #{} (eventual-containers (invert (translate (bag-rules-ast (puzzle-in 7)))) ["shiny" "gold"] #{})))
-;; => 124
-;; day 7 part 1 answer. nice.
-
 
