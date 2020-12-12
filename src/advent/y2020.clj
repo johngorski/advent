@@ -895,3 +895,152 @@ dotted black bags contain no other bags.
                      576])
   ;; => 62
   )
+
+(comment
+  "day 10"
+
+  (def day10
+    (->
+     (puzzle-in 10)
+     (string/split #"\n")
+     (->> (map edn/read-string))))
+
+  (frequencies (map (fn [[a b]] (- b a)) (partition 2 1 (sort day10))))
+  ;; => {1 67, 3 31}
+
+  (* 67 31)
+  ;; => 2077
+  ;; too low
+
+  (* 67 32)
+  ;; => 2144
+  ;; still too low
+
+  (partition 2 1 (range 10))
+
+  (last day10);; => 40
+  (first day10);; => 84
+
+  (def sample10
+    [28
+     33
+     18
+     42
+     31
+     14
+     46
+     20
+     48
+     47
+     24
+     23
+     49
+     45
+     19
+     38
+     39
+     11
+     1
+     32
+     25
+     35
+     8
+     17
+     7
+     9
+     4
+     2
+     34
+     10
+     3])
+
+  (frequencies
+   (map
+    (fn [[a b]] (- b a))
+    (partition 2 1 (sort (conj sample10 0 (+ 3 (apply max sample10)))))))
+  ;; => {1 22, 3 10}
+
+  (defn j-diffs [js]
+    (frequencies
+     (map
+      (fn [[a b]] (- b a))
+      (partition 2 1 (sort (conj js 0 (+ 3 (apply max js))))))))
+
+  (j-diffs sample10)
+
+  (defn max-joltage [js]
+    (apply * (map (j-diffs js) [1 3])))
+
+  (max-joltage sample10);; => 220
+  (max-joltage day10);; => 2176 ;; there we go
+  (range 1 4)
+  ;; => (1 2 3)
+  (comment
+    (def paths-to
+      (memoize
+       (fn [joltages joltage]
+         (if (= 0 joltage)
+           1
+           (reduce
+            +
+            (map
+             (partial paths-to joltages)
+             (filter
+              joltages
+              (map
+               #(- joltage %)
+               (range 1 4)))))))))
+    )
+
+  (def paths-to
+    (memoize
+     (fn [joltages joltage]
+       (cond
+         (= 0 joltage)
+         1
+
+         (not (contains? joltages joltage))
+         0
+
+         :else
+         (+ (paths-to joltages (- joltage 1))
+            (paths-to joltages (- joltage 2))
+            (paths-to joltages (- joltage 3)))))))
+
+  (defn day10-part2 [js]
+    (let [device-joltage (+ 3 (apply max js))]
+      (paths-to (conj (set js) 0 device-joltage) device-joltage)))
+
+  sample10
+  (day10-part2 [16
+                10
+                15
+                5
+                1
+                11
+                7
+                19
+                6
+                12
+                4])
+  ;; => 8
+
+
+  (day10-part2 sample10)
+  ;; => 19208
+
+  (def fib
+    (memoize
+     (fn [n]
+       (if (<= n 1)
+         1
+         (+ (fib (- n 1)) (fib (- n 2)))))))
+
+  (map fib (range 10))
+  ;; => (1 1 2 3 5 8 13 21 34 55)
+
+  (day10-part2 day10)
+  ;; => 18512297918464
+
+  )
+
