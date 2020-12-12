@@ -803,5 +803,95 @@ dotted black bags contain no other bags.
   )
 
 (comment
-  "day 8")
+  "day 9"
 
+  (def day9 (-> (puzzle-in 9) (string/split #"\n") (->> (map edn/read-string))))
+
+  day9
+
+  (defn xmas? [preamble z]
+    (first
+     (for [x preamble
+           :when (contains? (disj preamble x) (- z x))]
+       [x ((disj preamble x) (- z x))])))
+
+  (xmas? (set (range 1 26)) 26)
+  ;; => [7 19]
+  (xmas? (set (range 1 26)) 49)
+  ;; => [24 25]
+  (xmas? (set (range 1 26)) 100)
+  ;; => nil
+  (xmas? (set (range 1 26)) 50)
+  ;; => nil
+
+  (partition 3 1 (range 9))
+  ;; => ((0 1 2) (1 2 3) (2 3 4) (3 4 5) (4 5 6) (5 6 7) (6 7 8))
+
+  (defn xmas-partition? [part]
+    (let [preamble (set (butlast part))
+          x (last part)]
+      (xmas? preamble x)))
+
+  day9
+
+  (xmas-partition? (range 26))
+  ;; => [7 18]
+  (last (first (remove xmas-partition? (partition 26 1 day9))));; => 3199139634
+
+  (count day9)
+
+  (type day9)
+  (vec day9)
+
+  (defn contiguous-range [target acc first-idx last-idx list]
+    (cond
+      (= target acc)
+      (let [rng (subvec list first-idx (inc last-idx))]
+        (println :found)
+        (apply + (map #(apply % rng) [min max])))
+
+      (>= first-idx last-idx)
+      (let [first-idx' last-idx
+            last-idx' (inc first-idx')
+            acc' (+ (list first-idx') (list last-idx'))]
+        (println :index)
+        (recur target acc' first-idx' last-idx' list))
+
+      (< acc target)
+      (let [last-idx' (inc last-idx)]
+        (println :too-low)
+        (recur target (+ acc (list last-idx')) first-idx last-idx' list))
+
+      (< target acc)
+      (let [first-idx' (inc first-idx)]
+        (println :too-high)
+        (recur target (- acc (list first-idx)) first-idx' last-idx list))
+
+      ))
+
+  (contiguous-range 3199139634 0 0 0 (vec day9))
+  ;; => 438559930
+
+  (contiguous-range 127 (+ 35 20) 0 1
+                    [35
+                     20
+                     15
+                     25
+                     47
+                     40
+                     62
+                     55
+                     65
+                     95
+                     102
+                     117
+                     150
+                     182
+                     127
+                     219
+                     299
+                     277
+                     309
+                     576])
+  ;; => 62
+  )
