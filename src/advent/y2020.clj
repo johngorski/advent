@@ -1044,3 +1044,171 @@ dotted black bags contain no other bags.
 
   )
 
+(comment
+  "day 11"
+
+  {\. :floor
+   \L :empty-seat
+   \# :occupied-seat}
+
+  (def day11 (-> (puzzle-in 11) (string/split #"\n") (->> (mapv (comp vec seq)))))
+
+  (count day11);; => 98
+  (count (first day11));; => 96
+
+  (defn occupied-neighbors [grid row col]
+    (let [rows (count grid)
+          cols (count (first grid))]
+      (for [neighbor-row (filter #(< -1 % rows) (map #(+ row %) [-1 0 1]))
+            neighbor-col (filter #(< -1 % cols) (map #(+ col %) [-1 0 1]))
+            :when (and (not (and (= row neighbor-row) (= col neighbor-col)))
+                       (= \# (get-in grid [neighbor-row neighbor-col])))]
+        [neighbor-row neighbor-col])))
+
+  (occupied-neighbors day11 0 0)
+
+  (defn seat-round [grid]
+    (let [rows (count grid)
+          cols (count (first grid))]
+      (vec (map-indexed (fn [row-idx row]
+                          (vec (map-indexed (fn [col-idx col]
+                                              (cond
+                                                (and (= \L col) (empty? (occupied-neighbors grid row-idx col-idx)))
+                                                \#
+
+                                                (and (= \# col) (<= 4 (count (occupied-neighbors grid row-idx col-idx))))
+                                                \L
+
+                                                :else
+                                                col))
+                                            row)))
+                        grid))))
+
+  (first (first (drop-while #(apply not= %) (partition 2 1 [1 2 3 4 5 5 6]))))
+
+  (seat-round day11)
+
+  (comment
+    (first (first (drop-while #(apply not= %) (partition 2 1 (iterate seat-round day11)))))
+    )
+
+  (mapcat identity [[1 2 3] [4 5 6]])
+  ;; => (1 2 3 4 5 6)
+
+  (comment
+    (get (frequencies (mapcat identity (first (first (drop-while #(apply not= %) (partition 2 1 (iterate seat-round day11))))))) \#);; => 2418
+    )
+
+  (defn line-of-sight-seats [grid row-idx col-idx]
+    (let [rows (count grid)
+          cols (count (first grid))
+          in-bounds? (fn [[r c]]
+                       (and
+                        (< -1 r rows)
+                        (< -1 c cols)))
+          dirs (for [dr [-1 0 1]
+                     dc [-1 0 1]
+                     :when (not (and (= 0 dr) (= 0 dc)))]
+                 (fn [[cr cc]] [(+ cr dr) (+ cc dc)]))
+          rays (map
+                (fn [dir]
+                  (take-while
+                   in-bounds?
+                   (iterate dir (dir [row-idx col-idx]))))
+                dirs)
+
+          ;; then get the first non-empty seat in each ray
+
+          ]
+      (filter some? (map (fn [ray] (first (remove #(= (get-in grid %) \.) ray))) rays))
+      ))
+
+  (line-of-sight-seats (seats
+                        ".......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....") 4 3)
+  ;; => ([2 1] [1 3] [0 7] [4 2] [4 8] [7 0] [8 3] [5 4])
+
+
+  (line-of-sight-seats day11 0 0)
+  ;; => ([0 1] [1 0] [1 1])
+  (line-of-sight-seats day11 1 7)
+  ;; => ([0 6] [0 7] [1 6] [1 9] [2 6] [2 7] [3 9])
+
+  (defn occupied-line-of-seats [grid row-idx col-idx]
+    (filter #(= \# %) (map #(get-in grid %) (line-of-sight-seats grid row-idx col-idx))))
+
+  (occupied-line-of-seats day11 1 7)
+  ;; => ()
+
+  (defn line-of-seat-round [grid]
+    (let [rows (count grid)
+          cols (count (first grid))]
+      (vec (map-indexed (fn [row-idx row]
+                          (vec (map-indexed (fn [col-idx col]
+                                              (cond
+                                                (and (= \L col) (empty? (occupied-line-of-seats grid row-idx col-idx)))
+                                                \#
+
+                                                (and (= \# col) (<= 5 (count (occupied-line-of-seats grid row-idx col-idx))))
+                                                \L
+
+                                                :else
+                                                col))
+                                            1              row)))
+                        grid))))
+
+  (-> day11 line-of-seat-round line-of-seat-round line-of-seat-round)
+
+
+  (def sample11 (-> "L.LL.LL.LL
+LLLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLLL
+L.LLLLLL.L
+L.LLLLL.LL" (string/split #"\n") (->> (mapv (comp vec seq)))))
+
+  (defn seats [seats-str]
+    (-> seats-str (string/split #"\n") (->> (mapv (comp vec seq)))))
+
+  (count (occupied-line-of-seats (seats ".......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....") 4 3))
+  ;; => 2
+
+  (occupied-line-of-seats (seats ".......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....") 4 3)
+  ;; => (\# \#)
+
+
+
+  (get (frequencies (mapcat identity (first (first (drop-while #(apply not= %) (partition 2 1 (iterate line-of-seat-round sample11))))))) \#)
+  ;; => 26
+
+  (get (frequencies (mapcat identity (first (first (drop-while #(apply not= %) (partition 2 1 (iterate line-of-seat-round day11))))))) \#)
+  ;; => 2144
+
+  )
