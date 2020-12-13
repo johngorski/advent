@@ -1333,3 +1333,198 @@ L.LLLLL.LL" (string/split #"\n") (->> (mapv (comp vec seq)))))
   ;; => 62434
   )
 
+(comment
+  "day 13"
+
+  (quot 16 3)
+  (mod 16 3)
+
+  (defn earliest-departure [earliest bus-id]
+    (let [q (quot earliest bus-id)
+          previous (* q bus-id)]
+      (if (= previous earliest)
+        previous
+        (+ previous bus-id))))
+
+  (apply min-key #(earliest-departure 939 %) [7,13,59,,31,19])
+
+  (def day13 {:earliest 1002462
+              :bus-ids (remove #(= 'x %) '[37,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,601,x,x,x,x,x,x,x,x,x,x,x,19,x,x,x,x,17,x,x,x,x,x,23,x,x,x,x,x,29,x,443,x,x,x,x,x,x,x,x,x,x,x,x,13])})
+
+  (:bus-ids day13);; => (37 41 601 19 17 23 29 443 13)
+
+  (let [{:keys [earliest bus-ids]} day13]
+    (apply min-key #(earliest-departure earliest %) bus-ids))
+  ;; => 601
+
+  (defn wait-time [earliest bus-id]
+    (- (earliest-departure earliest bus-id) earliest))
+
+  (wait-time 1002462 601)
+  ;; => 6
+
+  (* 601 6);; => 3606
+
+  (into {}
+        (filter #(not= 'x (second %))
+                (map-indexed vector
+                             '[37,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,601,x,x,x,x,x,x,x,x,x,x,x,19,x,x,x,x,17,x,x,x,x,x,23,x,x,x,x,x,29,x,443,x,x,x,x,x,x,x,x,x,x,x,x,13])))
+  (comment
+    {0 37,   ;; (+ t 0) equiv 0 (mod 37)
+     60 23,  ;; (+ t 60) equiv 0 (mod 23)
+     27 41,  ;; (+ t 27) equiv 0 (mod 41)
+     54 17,  ;; ...
+     66 29,
+     68 443,
+     81 13,
+     37 601,
+     49 19})
+
+  ;; Chinese Remainder Theorem time?
+
+  sort-by
+
+  (reverse (sort-by second (seq {0 37,   ;; (+ t 0) equiv 0 (mod 37)
+                                 60 23,  ;; (+ t 60) equiv 0 (mod 23)
+                                 27 41,  ;; (+ t 27) equiv 0 (mod 41)
+                                 54 17,  ;; ...
+                                 66 29,
+                                 68 443,
+                                 81 13,
+                                 37 601,
+                                 49 19})))
+  (comment
+    ([37 601]
+     [68 443]
+     [27 41]
+     [0 37]
+     [66 29]
+     [60 23]
+     [49 19]
+     [54 17]
+     [81 13]))
+
+  (def crt13
+    (map
+     (fn [[-a n]]
+       [(mod (- -a) n) n])
+     '([37 601]
+       [68 443]
+       [27 41]
+       [0 37]
+       [66 29]
+       [60 23]
+       [49 19]
+       [54 17]
+       [81 13])))
+
+  crt13
+  ;; => ([564 601] [375 443] [14 41] [0 37] [21 29] [9 23] [8 19] [14 17] [10 13])
+
+  (defn gcd [a b]
+    (if (< a b)
+      (recur b a)
+      (let [rem (mod a b)]
+        (if (= 0 rem)
+          b
+          (recur b rem)))))
+
+  (gcd 35 49)
+  ;; => 7
+
+  (defn multiplicative-inverse
+    "b^-1 (mod a), via algorithm 5.3 in crypto text on page 168"
+    [a b]
+    (loop [a0 a
+           b0 b
+           t0 0
+           t 1
+           q (quot a0 b0)
+           r (- a0 (* q b0))]
+      (if (< 0 r)
+        (let [t0' t
+              t' (mod (- t0 (* q t)) a)
+              a0' b0
+              b0' r
+              q' (quot a0' b0')
+              r' (- a0' (* q' b0'))]
+          (recur a0' b0' t0' t' q' r'))
+        (when (= b0 1)
+          t))))
+
+  (multiplicative-inverse 15 4)
+  ;; 4
+
+  (comment
+    (defn extended-gcd [{:keys []}]
+      )
+    )
+
+  (defn chinese-remainder-theorem [ams]
+    (let [M (reduce * (map second ams))]
+      (mod
+       (->>
+        ams
+        (map (fn [[a m]]
+               (let [Mi (/ M m)
+                     yi (multiplicative-inverse m Mi)]
+                 (* a Mi yi))
+               ))
+        (map #(mod % M))
+        (reduce +)
+        )
+       M)))
+
+  (chinese-remainder-theorem
+   [[1 7]
+    [1 8]
+    [1 9]])
+  ;; => 1009
+
+  (map #(mod 1009 %) [7 8 9])
+  ;; => (1 1 1)
+
+  crt13
+  ;; => ([564 601] [375 443] [14 41] [0 37] [21 29] [9 23] [8 19] [14 17] [10 13])
+
+  (chinese-remainder-theorem crt13)
+  ;; => 379786358533423
+
+  (= (into {} crt13) (into {} (map #(vec [(mod 2642165995798469 %) %]) (map second crt13))))
+
+  (defn translate-crt [ids]
+    (->>
+     ids
+     (map-indexed vector)
+     (filter #(not= 'x (second %)))
+     (map
+      (fn [[-a n]]
+        [(mod (- -a) n) n]))
+     ))
+
+  (translate-crt '[7,13,x,x,59,x,31,19])
+  ;; => ([0 7] [12 13] [55 59] [25 31] [12 19])
+
+  (chinese-remainder-theorem
+   (translate-crt '[7,13,x,x,59,x,31,19]))
+  ;; => 7393463
+
+  (map #(vec [(mod 1068781 %) %]) (map second (translate-crt '[7,13,x,x,59,x,31,19])))
+  ;; => ([0 7] [12 13] [55 59] [25 31] [12 19])
+
+  (->
+   '[37,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,601,x,x,x,x,x,x,x,x,x,x,x,19,x,x,x,x,17,x,x,x,x,x,23,x,x,x,x,x,29,x,443,x,x,x,x,x,x,x,x,x,x,x,x,13]
+   translate-crt ;; => ([0 37] [14 41] [564 601] [8 19] [14 17] [9 23] [21 29] [375 443] [10 13])
+   chinese-remainder-theorem)
+  ;; => 379786358533423
+
+  (->
+   '[7,13,x,x,59,x,31,19]
+   translate-crt ;; => ([0 7] [12 13] [55 59] [25 31] [12 19])
+   chinese-remainder-theorem)
+  ;; => 1068781
+
+  (map #(vec [(mod 7393463 %) %]) (map second (translate-crt '[7,13,x,x,59,x,31,19])))
+  ;; => ([0 7] [12 13] [55 59] [25 31] [12 19])
+
+  )
