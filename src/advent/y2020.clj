@@ -1212,3 +1212,124 @@ L.LLLLL.LL" (string/split #"\n") (->> (mapv (comp vec seq)))))
   ;; => 2144
 
   )
+
+(comment
+  "day 12"
+
+  {:heading 90
+   :position [0 0]}
+
+  (defn nav-instruction [s]
+    (let [[_ action value] (re-matches #"(\w)(\d+)" s)]
+      [action (edn/read-string value)]))
+
+  (nav-instruction "F10")
+  ;; => ["F" 10]
+
+  (defn nav-decode
+    "action + arg -> effect on the state of the ship (ship-state -> ship-state)"
+    [action arg {:keys [heading] :as ship}]
+    (case action
+      "N"
+      {:position (fn [[x y]] [x (+ y arg)])}
+
+      "S"
+      {:position (fn [[x y]] [x (- y arg)])}
+
+      "E"
+      {:position (fn [[x y]] [(+ x arg) y])}
+
+      "W"
+      {:position (fn [[x y]] [(- x arg) y])}
+
+      "L"
+      {:heading #(mod (- % arg) 360)}
+
+      "R"
+      {:heading #(mod (+ % arg) 360)}
+
+      "F"
+      (recur ({0 "N", 90 "E", 180 "S", 270 "W"} heading) arg ship)
+      ))
+
+
+  (merge-with #(%1 %2) ((partial nav-decode (nav-instruction "F10")) {:heading 90, :position [0 0]}) {:heading 90, :position [0 0]})
+
+  (let [ship {:heading 90, :position [0 0]}
+        [action arg] (nav-instruction "F10")]
+    (merge-with #(%1 %2) (nav-decode action arg ship) ship))
+  ;; => {:position [10 0], :heading 90}
+
+  (let [ship {:heading 90, :position [0 0]}
+        [action arg] (nav-instruction "N3")]
+    (merge-with #(%1 %2) (nav-decode action arg ship) ship))
+  ;; => {:position [0 3], :heading 90}
+
+  (defn nav-step [ship instruction]
+    (let [[action arg] instruction]
+      (merge-with #(%1 %2) (nav-decode action arg ship) ship)))
+
+  (def day12 (-> (puzzle-in 12) (string/split #"\n") (->> (map nav-instruction))))
+
+  (take 10 day12)
+  ;; => (["S" 1] ["R" 270] ["S" 5] ["W" 2] ["F" 63] ["S" 3] ["L" 90] ["W" 4] ["F" 59] ["S" 1])
+
+  (reduce nav-step {:heading 90, :position [0 0]} day12)
+  ;; => {:position [-743 576], :heading 270}
+  (+ 743 576);; => 1319
+
+
+  ;; 90-degree rotations
+  {[3 4] [4 -3]
+   [4 -3] [-3 -4]
+   [-3 -4] [-4 3]
+   [-4 3] [3 4]}
+
+  (defn right-90 [[x y]]
+    [y (- x)])
+
+  {:position [0 0]
+   :waypoint [10 1]}
+
+  (defn waypoint-decode [action arg {:keys [waypoint] :as ship}]
+    (case action
+      "N"
+      {:waypoint (fn [[x y]] [x (+ y arg)])}
+
+      "S"
+      {:waypoint (fn [[x y]] [x (- y arg)])}
+
+      "E"
+      {:waypoint (fn [[x y]] [(+ x arg) y])}
+
+      "W"
+      {:waypoint (fn [[x y]] [(- x arg) y])}
+
+      "L"
+      (recur "R" ({0 0, 90 270, 180 180, 270 90} arg) ship)
+
+      "R"
+      {:waypoint ({0 identity,
+                   90 right-90,
+                   180 (comp right-90 right-90),
+                   270 (comp right-90 right-90 right-90)}
+                  arg)}
+
+      "F"
+      {:position (fn [[x y]]
+                   (let [[wx wy] waypoint]
+                     [(+ x (* wx arg))
+                      (+ y (* wy arg))]))}
+      ))
+
+  (defn waypoint-step [ship instruction]
+    (let [[action arg] instruction]
+      (merge-with #(%1 %2) (waypoint-decode action arg ship) ship)))
+
+  (reduce waypoint-step {:position [0 0], :waypoint [10 1]} day12)
+  ;; => {:position [-39392 23042], :waypoint [-65 -26]}
+
+  (+ 39392 23042)
+  ;; => 62434
+  )
+
