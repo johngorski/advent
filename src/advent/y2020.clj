@@ -1528,3 +1528,174 @@ L.LLLLL.LL" (string/split #"\n") (->> (mapv (comp vec seq)))))
   ;; => ([0 7] [12 13] [55 59] [25 31] [12 19])
 
   )
+
+(comment
+  "day 14"
+
+  (def day14 (-> (puzzle-in 14) (string/split #"\n")))
+
+  (re-matches #"abc" "de")
+
+  Long/MAX_VALUE
+  ;; => 9223372036854775807
+  ;;    922337203685477580792233720368547758079223372036854775807
+  ;;    1234567890123456789012345678901234567890
+
+  (defn parse-ferry [s]
+    (let [[op arg1 arg2] (rest
+                          (or
+                           (re-matches #"(mask) = ([0-9X]+)" s)
+                           (re-matches #"(mem).(\d+). = (\d+)" s)))]
+      (case op
+        "mask" [:mask {:and-mask (Long/parseLong (apply str (map #(if (= % \0) 0 1) (seq arg1))) 2)
+                       :or-mask (Long/parseLong (apply str (map #(if (= % \1) 1 0) (seq arg1))) 2)}]
+        "mem" [:mem (edn/read-string arg1) (edn/read-string arg2)])))
+
+  (parse-ferry "mask = 000X0001010X01111X110X1X011X01110100")
+  ;; => [:mask {:and-mask 4655642484, :or-mask 343615092}]
+  ;; => ("mask" "000X0001010X01111X110X1X011X01110100")
+
+  (parse-ferry "mem[37380] = 15013")
+  ;; => [:mem 37380 15013]
+  ;; => ("mem" "37380" "15013")
+
+  (defn ferry-step [[op {:keys [and-mask or-mask] :as arg1} arg2]]
+    (fn [{:keys [mask mem] :as ferry-cpu}]
+      (case op
+        :mask
+        (assoc ferry-cpu :mask (comp #(bit-and and-mask %) #(bit-or or-mask %)))
+
+        :mem
+        (assoc-in ferry-cpu [:mem arg1] (mask arg2))))
+    )
+
+  (take 5 (map parse-ferry day14))
+  (comment
+    ([:mask {:and-mask 34182051680, :or-mask 13495707488}]
+     [:mem 4634 907]
+     [:mem 54949 444591415]
+     [:mem 5445 1446]
+     [:mem 2822 702866]))
+
+  ((ferry-step (parse-ferry (first day14))) {:mem {} :mask identity})
+  ;; => {:mem {}, :mask #object[clojure.core$comp$fn__5792 0x61aa10e8 "clojure.core$comp$fn__5792@61aa10e8"]}
+
+  {:mem {{:and-mask 34182051680, :or-mask 13495707488} nil},
+   :mask #object[clojure.core$identity 0x4b0b675f "clojure.core$identity@4b0b675f"]}
+
+  (reduce + (vals (:mem (reduce #(%2 %1) {:mem {} :mask identity} (map (comp ferry-step parse-ferry) day14)))))
+  ;; => 9296748256641
+
+  (defn v2-bit-decoder
+    "function which will translate a bit to its alternatives"
+    [ch]
+    (case ch
+      \0 (fn [b] [b])
+      \1 (fn [_] [1])
+      \X (fn [_] [0 1])))
+
+  (defn v2-or-masks [s]
+    (map
+     #(Long/parseLong (apply str %) 2)
+     (reduce
+      (fn [or-prefixes or-alternatives]
+        (for [or-prefix or-prefixes
+              or-alternative or-alternatives]
+          (conj or-prefix or-alternative)))
+      [[]]
+      (map #((v2-bit-decoder %) %) (seq s)))))
+
+  (v2-or-masks "000000000000000000000000000000X1001X")
+  ;; => (18 19 50 51)
+  (comment
+    ("000000000000000000000000000000010010"
+     "000000000000000000000000000000010011"
+     "000000000000000000000000000000110010"
+     "000000000000000000000000000000110011"))
+
+
+  (defn parse-ferry-v2 [s]
+    (let [[op arg1 arg2] (rest
+                          (or
+                           (re-matches #"(mask) = ([0-9X]+)" s)
+                           (re-matches #"(mem).(\d+). = (\d+)" s)))]
+      (case op
+        "mask" [:mask arg1]
+        "mem" [:mem (edn/read-string arg1) (edn/read-string arg2)])))
+
+  (parse-ferry-v2 "mask = 000000000000000000000000000000X1001X0")
+  ;; => [:mask (36 38 100 102)]
+
+  (defn pad36 [s]
+    (let [zeros (apply str (repeat (- 36 (count s)) \0))]
+      (str zeros s)))
+
+  (pad36 (Long/toString 42 2))
+  ;; => "000000000000000000000000000000101010"
+
+  (defn mask-address-v2 [mask address]
+    (let [add-str (pad36 (Long/toString address 2))
+          combined (apply str (map (fn [mask-char add-char]
+                                     (case mask-char
+                                       \0 add-char
+                                       \1 \1
+                                       \X \X))
+                                   mask
+                                   add-str))]
+      (v2-or-masks combined)))
+
+  (mask-address-v2 "00000000000000000000000000000000X0XX" 26)
+  ;; => (16 17 18 19 24 25 26 27)
+
+  (defn ferry-step-v2 [[op arg1 arg2]]
+    (fn [{:keys [mask mem] :as ferry-cpu}]
+      (case op
+        :mask
+        (assoc ferry-cpu :mask arg1)
+
+        :mem
+        (update
+         ferry-cpu
+         :mem
+         #(apply assoc % (apply
+                          concat
+                          (for [address (mask-address-v2 mask arg1)]
+                            [address arg2]))))
+        )))
+
+  (reduce + (vals (:mem (reduce #(%2 %1) {:mem {} :mask (fn [m] [m])} (map (comp ferry-step-v2 parse-ferry-v2) day14)))))
+  ;; => 928478797933
+  ;; => 2018729590518 ;; too low
+  ;; => 24457052105 ;; too low
+
+  (reduce #(%2 %1) {:mem {} :mask (fn [m] [m])} (map (comp ferry-step-v2 parse-ferry-v2) day14))
+
+  (def sample14 (-> "mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1" (string/split #"\n")))
+
+  day14
+  sample14
+
+  (defn run-ferry-2 [ferry-source]
+    (reduce
+     #(%2 %1)
+     {:mem {} :mask (pad36 "")}
+     (map
+      (comp ferry-step-v2 parse-ferry-v2)
+      ferry-source)))
+
+  (run-ferry-2 sample14)
+  (comment
+    {:mem {59 100,
+           58 100,
+           27 1, 24 1, 25 1, 17 1, 19 1, 26 1, 16 1, 18 1}
+     :mask "00000000000000000000000000000000X0XX"})
+
+  (reduce + (vals (:mem (run-ferry-2 sample14))))
+  ;; => 208
+
+  (reduce + (vals (:mem (run-ferry-2 day14))));; => 4877695371685
+  )
+
