@@ -1699,3 +1699,51 @@ mem[26] = 1" (string/split #"\n")))
   (reduce + (vals (:mem (run-ferry-2 day14))));; => 4877695371685
   )
 
+(comment
+  "day 15"
+
+  (def day15 [16,12,1,0,15,7,11])
+
+  (rest nil);; => ()
+  (first nil)
+  (first [])
+
+  (defn elf-round [{:keys [starters history last-spoken]} tick]
+    (if-let [starter (first starters)]
+      {:starters (rest starters)
+       :history (assoc history last-spoken tick)
+       :last-spoken starter}
+      (let [say (if-let [last-said (history last-spoken)]
+                  (- tick last-said)
+                  0)]
+        {:history (assoc history last-spoken tick)
+         :last-spoken say})))
+
+  (map :last-spoken (reductions elf-round {:starters [0,3,6] :history {}} (range 10)))
+  ;; => (nil 0 3 6 0 3 3 1 0 4 0)
+  ;; expect  0 3 6 0 3 3 1 0 4 0
+
+  (:last-spoken (reduce elf-round {:starters [0,3,6] :history {}} (range 10)))
+  ;; => 0
+
+  (:last-spoken (reduce elf-round {:starters [0,3,6] :history {}} (range 2020)))
+  ;; => 436
+
+  (defn elf [rounds starters]
+    (:last-spoken (reduce elf-round {:starters starters :history {}} (range rounds))))
+
+  (elf 2020 [0,3,6])
+  ;; => 436
+
+  (elf 2020 [1,3,2])
+  ;; => 1
+
+  (elf 2020 [2 1 3]);; => 10
+
+  (elf 2020 day15)
+  ;; => 403
+
+  (elf 30000000 day15)
+  ;; 6823
+  )
+
