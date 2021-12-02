@@ -1747,3 +1747,97 @@ mem[26] = 1" (string/split #"\n")))
   ;; 6823
   )
 
+(comment
+  "day 16")
+
+(def rules16
+  (->>
+   (string/split "departure location: 34-724 or 735-974
+departure station: 40-521 or 534-950
+departure platform: 40-329 or 353-973
+departure track: 37-258 or 268-964
+departure date: 32-650 or 665-964
+departure time: 39-373 or 398-950
+arrival location: 42-431 or 447-952
+arrival station: 36-536 or 552-972
+arrival platform: 45-666 or 678-952
+arrival track: 49-836 or 852-952
+class: 35-600 or 623-953
+duration: 50-920 or 929-950
+price: 35-853 or 870-973
+route: 34-309 or 318-965
+row: 42-267 or 292-962
+seat: 46-632 or 642-954
+train: 47-746 or 754-960
+type: 32-406 or 423-963
+wagon: 37-797 or 810-973
+zone: 35-766 or 784-952" #"\n")
+   ))
+
+(def ticket16 [113,53,97,59,139,73,89,109,67,71,79,127,149,107,137,83,131,101,61,103])
+
+(def nearby16
+  (->>
+   (string/split (puzzle-in 16) #"\n")
+   (map
+    (fn [line]
+      (map edn/read-string (string/split line #","))))))
+
+(def ruleparser16
+  (insta/parser
+   "rule = field ': ' range (' or ' range)*
+    field = #'[^:]+'
+    range = from '-' to
+    from = #'\\d+'
+    to = #'\\d+'
+"))
+
+(ruleparser16 (first rules16))
+(comment
+  [:rule
+   [:field "departure location"]
+   ": "
+   [:range
+    [:from "34"] "-" [:to "724"]]
+   " or "
+   [:range
+    [:from "735"] "-" [:to "974"]]])
+
+(defmulti parse16 first)
+
+(defmethod parse16 :rule [[_ field _ & ranges]]
+  {(parse16 field) (map parse16 (take-nth 2 ranges))})
+
+(partition 1 2 (range 9))
+(take-nth 2 (range 9))
+;; => (0 2 4 6 8)
+
+(defmethod parse16 :field [[_ field]]
+  field)
+
+(defmethod parse16 :range [[_ from _ to]]
+  {:from (parse16 from), :to (parse16 to)})
+
+(defmethod parse16 :from [[_ s]]
+  (edn/read-string s))
+
+(defmethod parse16 :to [[_ s]]
+  (edn/read-string s))
+
+(parse16 (ruleparser16 (first rules16)))
+;; => {"departure location" ({:from 34, :to 724} {:from 735, :to 974})}
+
+(->>
+ rules16
+ (map (comp parse16 ruleparser16))
+ merge
+ (apply merge)
+ vals
+ (mapcat identity)
+ )
+
+(defn range-checker [{:keys [from to]}]
+  #(<= from % to))
+
+every?
+
