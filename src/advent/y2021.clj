@@ -102,4 +102,54 @@ forward 2")
 (let [[h d] (aimed-sub-position (string/split (puzzle-in 2) #"\n"))] (* h d))
 ;; => 2134882034
 
+(nth (seq "banana") 4)
+
+(nth "banana" 4)
+
+(defn transpose [a2d]
+  (let [n (count (first a2d))]
+    (map (fn [idx] (map (fn [row] (nth row idx)) a2d)) (range n))))
+
+(transpose [[1 2] [3 4]])
+;; => ((1 3) (2 4))
+
+(transpose ["ab" "cd"])
+;; => ((\a \c) (\b \d))
+
+(def sample-3 (string/split-lines "00100
+11110
+10110
+10111
+10101
+01111
+00111
+11100
+10000
+11001
+00010
+01010"))
+
+(def in-3 (string/split-lines (puzzle-in 3)))
+
+(defn power-consumption [input]
+  (let [n (count input)
+        t-pose (transpose input)
+        freqs (map frequencies t-pose)
+        highest-digits (apply str (map (fn [counts] (if (< (counts \0) (/ n 2)) 1 0)) freqs))
+        gamma (Integer/parseInt highest-digits 2)
+        epsilon (bit-xor (Integer/parseInt (apply str (repeat (count (first input)) \1)) 2) gamma)
+        ]
+    {:t-pose t-pose
+     :freqs freqs
+     :highest-digits highest-digits
+     :gamma gamma
+     :epsilon epsilon}
+    (* gamma epsilon)
+    ))
+
+(power-consumption sample-3)
+;; => 198
+
+(power-consumption in-3)
+;; => 3320834
 
