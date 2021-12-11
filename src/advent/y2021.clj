@@ -153,3 +153,36 @@ forward 2")
 (power-consumption in-3)
 ;; => 3320834
 
+(defn bit-freqs [input]
+  (let [n (count input)
+        t-pose (transpose input)]
+    (map frequencies t-pose)
+    ))
+
+(bit-freqs sample-3)
+;; => ({\0 5, \1 7} {\0 7, \1 5} {\1 8, \0 4} {\0 5, \1 7} {\0 7, \1 5})
+
+(defn o2-rating [input idx]
+  (if (= 1 (count input))
+    (Integer/parseInt (first input) 2)
+    (let [counts (frequencies (map #(nth % idx) input))
+          bit (if (<= (counts \0) (counts \1)) \1 \0)
+          input' (filter (fn [line] (= bit (nth line idx))) input)]
+      (recur input' (inc idx))
+      )
+    )
+  )
+
+(o2-rating sample-3 0)
+;; => 23
+
+(defn scrubber-rating [input idx]
+  (if (= 1 (count input))
+    (Integer/parseInt (first input) 2)
+    (let [counts (frequencies (map #(nth % idx) input))
+          bit (if (<= (counts \1) (counts \0)) \0 \1)
+          input' (filter (fn [line] (= bit (nth line idx))) input)]
+      (recur input' (inc idx))
+      )
+    ))
+
