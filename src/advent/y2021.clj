@@ -139,19 +139,16 @@ forward 2")
         gamma (Integer/parseInt highest-digits 2)
         epsilon (bit-xor (Integer/parseInt (apply str (repeat (count (first input)) \1)) 2) gamma)
         ]
-    {:t-pose t-pose
-     :freqs freqs
-     :highest-digits highest-digits
-     :gamma gamma
-     :epsilon epsilon}
     (* gamma epsilon)
     ))
 
 (power-consumption sample-3)
 ;; => 198
 
+(comment
 (power-consumption in-3)
 ;; => 3320834
+)
 
 (defn bit-freqs [input]
   (let [n (count input)
@@ -180,9 +177,187 @@ forward 2")
   (if (= 1 (count input))
     (Integer/parseInt (first input) 2)
     (let [counts (frequencies (map #(nth % idx) input))
-          bit (if (<= (counts \1) (counts \0)) \0 \1)
+          bit (if (>= (counts \1) (counts \0)) \0 \1)
           input' (filter (fn [line] (= bit (nth line idx))) input)]
       (recur input' (inc idx))
       )
     ))
+
+(scrubber-rating sample-3 0)
+;; => 10
+
+(defn life-support-rating [input]
+  (let [o2 (o2-rating input 0)
+        scrubber (scrubber-rating input 0)]
+    (* o2 scrubber)))
+
+(life-support-rating sample-3)
+;; => 230
+
+(comment
+  (life-support-rating in-3)
+  ;; => 4481199
+  )
+
+(def sample-4 "7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1
+
+22 13 17 11  0
+ 8  2 23  4 24
+21  9 14 16  7
+ 6 10  3 18  5
+ 1 12 20 15 19
+
+ 3 15  0  2 22
+ 9 18 13 17  5
+19  8  7 25 23
+20 11 10 24  4
+14 21 16 12  6
+
+14 21 17 24  4
+10 16 15  9 19
+18  8 23 26 20
+22 11 13  6  5
+ 2  0 12  3  7")
+
+(defn string->board [s]
+  (let [rows (string/split s #"\n")]
+    (mapv (fn [row] (mapv #(Integer/parseInt %) (remove empty? (string/split row #"\s+")))) rows)))
+
+(let [[drawing-string & board-strings] (string/split sample-4 #"\n\n")
+      drawings (map #(Integer/parseInt %) (string/split drawing-string #","))
+      boards (map string->board board-strings)
+      ]
+  {:drawings drawings
+   :boards boards})
+
+(comment
+  {:drawings (7 4 9 5 11 17 23 2 0 14 21 24 10 16 13 6 15 25 12 22 18 20 8 19 3 26 1),
+   :boards ([[22 13 17 11 0]
+             [8 2 23 4 24]
+             [21 9 14 16 7]
+             [6 10 3 18 5]
+             [1 12 20 15 19]]
+            [[3 15 0 2 22]
+             [9 18 13 17 5]
+             [19 8 7 25 23]
+             [20 11 10 24 4]
+             [14 21 16 12 6]]
+            [[14 21 17 24 4]
+             [10 16 15 9 19]
+             [18 8 23 26 20]
+             [22 11 13 6 5]
+             [2 0 12 3 7]])})
+
+;; wip - parse sample boards and drawings
+
+(defn bingo-rows [board]
+  (seq board))
+
+(defn bingo-cols [board]
+  (map (fn [col] (map (fn [row] (get row col)) board)) (range (count (first board)))))
+
+(bingo-cols [[1 2 3] [4 5 6] [7 8 9]])
+;; => ((1 4 7) (2 5 8) (3 6 9))
+(bingo-rows [[1 2 3] [4 5 6] [7 8 9]])
+;; => ([1 2 3] [4 5 6] [7 8 9])
+
+(some even? [1 3 5])
+;; => nil
+(some even? [1 3 6])
+;; => true
+(some #{'a 2 'd} [1 2 3])
+;; => 2
+(some #(not (#{'a 2 3} %)) [1 2 3])
+;; => true
+(some #(not (#{'a 2 3 1} %)) [1 2 3])
+;; => nil
+(not (some #(not (#{'a 2 3 1} %)) [1 2 3]))
+;; => true
+
+(defn bingo? [drawn line]
+  (not (some #(not (drawn %)) line)))
+
+(bingo? #{'a 2 3 1} [1 2 3])
+;; => true
+(bingo? #{'a 2 3 1} [1 2 4])
+;; => false
+
+(defn wins-bingo? [drawn board]
+  (when
+      (or
+       (some #(bingo? drawn %) (bingo-rows board))
+       (some #(bingo? drawn %) (bingo-cols board))
+       )
+    board))
+
+(wins-bingo? #{} [[1 2 3] [4 5 6] [7 8 9]])
+;; => nil
+
+(wins-bingo? #{1 4 7} [[1 2 3] [4 5 6] [7 8 9]])
+;; => true
+
+(wins-bingo? #{1 4 8} [[1 2 3] [4 5 6] [7 8 9]])
+;; => nil
+
+(wins-bingo? #{4 5 6} [[1 2 3] [4 5 6] [7 8 9]])
+;; => true
+
+(defn bingo-winner [drawn to-draw boards]
+  (or
+   (when-let [winner (some #(wins-bingo? drawn %) boards)]
+     {:winner winner
+      :drawn drawn
+      })
+   (when (not-empty to-draw)
+     (recur (conj drawn (first to-draw)) (rest to-draw) boards))))
+
+(let [[drawing-string & board-strings] (string/split sample-4 #"\n\n")
+      drawings (map #(Integer/parseInt %) (string/split drawing-string #","))
+      boards (map string->board board-strings)
+      ]
+  {:drawings drawings
+   :boards boards}
+  (bingo-winner #{} drawings boards))
+
+(comment
+  [[14 21 17 24 4]
+   [10 16 15 9 19]
+   [18 8 23 26 20]
+   [22 11 13 6 5]
+   [2 0 12 3 7]])
+
+(or false nil :a)
+;; => :a
+(and false nil :a)
+;; => false
+
+(bingo-winner #{} [3 4 5] [[[1 2 3] [4 5 6] [7 8 9]]])
+;; => nil
+
+(bingo-winner #{} [3 4 5 6 7 8] [[[1 2 3] [4 5 6] [7 8 9]]])
+;; => {:winner [[1 2 3] [4 5 6] [7 8 9]], :drawn #{4 6 3 5}}
+
+(apply concat [[1 2] [3 4]])
+;; => (1 2 3 4)
+
+(defn bingo-score [drawn winner last-drawn]
+  (let [sum (apply + (remove drawn (apply concat winner)))]
+    (* sum last-drawn)))
+
+(defn parse-bingo [input]
+  (let [[drawing-string & board-strings] (string/split input #"\n\n")
+        drawings (map #(Integer/parseInt %) (string/split drawing-string #","))
+        boards (map string->board board-strings)
+        ]
+    {:drawings drawings
+     :boards boards}))
+
+(parse-bingo sample-4)
+
+(let [{:keys [drawings boards]} (parse-bingo sample-4)
+      {:keys [drawn winner]} (bingo-winner #{} drawings boards)
+      last-drawn (last (filter drawn drawings))
+      ]
+  (bingo-score drawn winner last-drawn)
+  )
 
