@@ -146,9 +146,9 @@ forward 2")
 ;; => 198
 
 (comment
-(power-consumption in-3)
-;; => 3320834
-)
+  (power-consumption in-3)
+  ;; => 3320834
+  )
 
 (defn bit-freqs [input]
   (let [n (count input)
@@ -356,6 +356,52 @@ forward 2")
 
 (let [{:keys [drawings boards]} (parse-bingo sample-4)
       {:keys [drawn winner]} (bingo-winner #{} drawings boards)
+      last-drawn (last (filter drawn drawings))
+      ]
+  (bingo-score drawn winner last-drawn)
+  )
+
+(let [{:keys [drawings boards]} (parse-bingo (puzzle-in 4))
+      {:keys [drawn winner]} (bingo-winner #{} drawings boards)
+      last-drawn (last (filter drawn drawings))
+      ]
+  (bingo-score drawn winner last-drawn)
+  )
+;; => 39984
+
+(comment
+  (or
+   (when-let [winner (some #(wins-bingo? drawn %) boards)]
+     {:winner winner
+      :drawn drawn
+      })
+   (when (not-empty to-draw)
+     (recur (conj drawn (first to-draw)) (rest to-draw) boards))))
+
+(defn last-bingo-winner [drawings drawn to-draw boards]
+  (cond
+    (empty? boards)
+    nil
+
+    (and
+     (= 1 (count boards))
+     (wins-bingo? drawn (first boards)))
+    (let [last-winner (first boards)
+          last-drawn (last (filter drawn drawings))]
+      ;; (bingo-score drawn last-winner last-drawn)
+      {:winner last-winner
+       :drawn drawn})
+
+    :else
+    (recur
+     drawings
+     (conj drawn (first to-draw))
+     (rest to-draw)
+     (remove #(wins-bingo? drawn %) boards))
+    ))
+
+(let [{:keys [drawings boards]} (parse-bingo (puzzle-in 4))
+      {:keys [drawn winner]} (last-bingo-winner drawings #{} drawings boards)
       last-drawn (last (filter drawn drawings))
       ]
   (bingo-score drawn winner last-drawn)
