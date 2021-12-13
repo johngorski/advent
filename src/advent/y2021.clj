@@ -406,4 +406,83 @@ forward 2")
       ]
   (bingo-score drawn winner last-drawn)
   )
+;; => 8468
+
+  (def sample-5 "0,9 -> 5,9
+  8,0 -> 0,8
+  9,4 -> 3,4
+  2,2 -> 2,1
+  7,0 -> 7,4
+  6,4 -> 2,0
+  0,9 -> 2,9
+  3,4 -> 1,4
+  0,0 -> 8,8
+  5,5 -> 8,2")
+
+(defn parse-5 [in]
+  (->> (string/split-lines in)
+       (map #(rest (re-matches #"(\d+),(\d+) -> (\d+),(\d+)" (string/trim %))))
+       (map (fn [strings] (map #(Integer/parseInt %) strings)))
+       (map (fn [[x1 y1 x2 y2]] [[x1 y1] [x2 y2]]))
+       ))
+
+(parse-5 sample-5)
+;; => ([[0 9] [5 9]] [[8 0] [0 8]] [[9 4] [3 4]] [[2 2] [2 1]] [[7 0] [7 4]] [[6 4] [2 0]] [[0 9] [2 9]] [[3 4] [1 4]] [[0 0] [8 8]] [[5 5] [8 2]])
+
+(defn horizontal? [[[x1 y1] [x2 y2]]]
+  (= y1 y2))
+
+(defn vertical? [[[x1 y1] [x2 y2]]]
+  (= x1 x2))
+
+(->> sample-5
+     parse-5
+     (filter #(or (horizontal? %) (vertical? %))))
+
+(defn vertical-points [[[x1 y1] [x2 y2]]]
+  (let [lo (min y1 y2)
+        hi (max y1 y2)]
+    (for [y (range lo (inc hi))]
+      [x1 y])))
+
+(defn horizontal-points [[[x1 y1] [x2 y2]]]
+  (let [lo (min x1 x2)
+        hi (max x1 x2)]
+    (for [x (range lo (inc hi))]
+      [x y1])))
+
+(defn line->points [line]
+  (cond
+    (horizontal? line)
+    (horizontal-points line)
+
+    (vertical? line)
+    (vertical-points line)
+
+    :else
+    []))
+
+(frequencies (mapcat line->points (parse-5 sample-5)))
+(comment
+  {[7 1] 1,
+   [2 2] 1,
+   [3 9] 1,
+   [8 4] 1,
+   [7 2] 1,
+   [7 4] 2,
+   [5 4] 1,
+   [3 4] 2,
+   [7 3] 1,
+   [1 9] 2,
+   [4 9] 1,
+   [2 9] 2,
+   [0 9] 2,
+   [1 4] 1,
+   [6 4] 1,
+   [5 9] 1,
+   [2 4] 1,
+   [7 0] 1,
+   [2 1] 1,
+   [9 4] 1,
+   [4 4] 1})
 
