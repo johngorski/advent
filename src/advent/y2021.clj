@@ -546,3 +546,58 @@ forward 2")
   ;; => 22116
   )
 
+(def sample-6 [3,4,3,1,2])
+
+(defn age-fish [fish]
+  (if (zero? fish)
+    6
+    (dec fish)))
+
+(defn fish-day [fishes]
+  (let [baby-count (count (filter zero? fishes))]
+    (concat (map age-fish fishes) (repeat baby-count 8))))
+
+(fish-day sample-6)
+;; => (2 3 2 0 1)
+
+(take 19 (iterate fish-day sample-6))
+(comment
+  ([3 4 3 1 2]
+   (2 3 2 0 1)
+   (1 2 1 6 0 8)
+   (0 1 0 5 6 7 8)
+   (6 0 6 4 5 6 7 8 8)
+   (5 6 5 3 4 5 6 7 7 8)
+   (4 5 4 2 3 4 5 6 6 7)
+   (3 4 3 1 2 3 4 5 5 6)
+   (2 3 2 0 1 2 3 4 4 5)
+   (1 2 1 6 0 1 2 3 3 4 8)
+   (0 1 0 5 6 0 1 2 2 3 7 8)
+   (6 0 6 4 5 6 0 1 1 2 6 7 8 8 8)
+   (5 6 5 3 4 5 6 0 0 1 5 6 7 7 7 8 8)
+   (4 5 4 2 3 4 5 6 6 0 4 5 6 6 6 7 7 8 8)
+   (3 4 3 1 2 3 4 5 5 6 3 4 5 5 5 6 6 7 7 8)
+   (2 3 2 0 1 2 3 4 4 5 2 3 4 4 4 5 5 6 6 7)
+   (1 2 1 6 0 1 2 3 3 4 1 2 3 3 3 4 4 5 5 6 8)
+   (0 1 0 5 6 0 1 2 2 3 0 1 2 2 2 3 3 4 4 5 7 8)
+   (6 0 6 4 5 6 0 1 1 2 6 0 1 1 1 2 2 3 3 4 6 7 8 8 8 8)
+  ))
+
+(nth (iterate fish-day sample-6) 18)
+;; => (6 0 6 4 5 6 0 1 1 2 6 0 1 1 1 2 2 3 3 4 6 7 8 8 8 8)
+
+(count (nth (iterate fish-day sample-6) 18))
+;; => 26
+
+(count (nth (iterate fish-day sample-6) 80))
+;; => 5934
+
+(count (nth (iterate fish-day sample-6) 80))
+
+(map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))
+
+(commment
+(count (nth (iterate fish-day (map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))) 80))
+;; => 353079
+)
+
