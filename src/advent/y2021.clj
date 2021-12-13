@@ -408,7 +408,7 @@ forward 2")
   )
 ;; => 8468
 
-  (def sample-5 "0,9 -> 5,9
+(def sample-5 "0,9 -> 5,9
   8,0 -> 0,8
   9,4 -> 3,4
   2,2 -> 2,1
@@ -451,6 +451,40 @@ forward 2")
     (for [x (range lo (inc hi))]
       [x y1])))
 
+(defn slash? [[[x1 y1] [x2 y2]]]
+  (or
+   (and
+    (< y1 y2)
+    (< x1 x2))
+   (and
+    (< y2 y1)
+    (< x2 x1))))
+
+(defn slash-points [[[x1 y1] [x2 y2]]]
+  (let [num-points (inc (Math/abs (- x2 x1)))]
+    (if (< x1 x2)
+      (for [idx (range num-points)]
+        [(+ x1 idx) (+ y1 idx)])
+      (for [idx (range num-points)]
+        [(+ x2 idx) (+ y2 idx)]))))
+
+(defn backslash? [[[x1 y1] [x2 y2]]]
+  (or
+   (and
+    (< x1 x2)
+    (< y2 y1))
+   (and
+    (< x2 x1)
+    (< y1 y2))))
+
+(defn backslash-points [[[x1 y1] [x2 y2]]]
+  (let [num-points (inc (Math/abs (- x2 x1)))]
+    (if (< x1 x2)
+      (for [idx (range num-points)]
+        [(+ x1 idx) (- y1 idx)])
+      (for [idx (range num-points)]
+        [(+ x2 idx) (- y2 idx)]))))
+
 (defn line->points [line]
   (cond
     (horizontal? line)
@@ -459,10 +493,19 @@ forward 2")
     (vertical? line)
     (vertical-points line)
 
+    (slash? line)
+    (slash-points line)
+
+    (backslash? line)
+    (backslash-points line)
+
     :else
     []))
 
-(frequencies (mapcat line->points (parse-5 sample-5)))
+(line->points [[0 3] [3 0]])
+;; => ([0 3] [1 2] [2 1] [3 0])
+
+(comment (frequencies (mapcat line->points (parse-5 sample-5))))
 (comment
   {[7 1] 1,
    [2 2] 1,
@@ -485,4 +528,21 @@ forward 2")
    [2 1] 1,
    [9 4] 1,
    [4 4] 1})
+
+(defn overlaps [lines]
+  (->>
+   (frequencies (mapcat line->points lines))
+   (filter (fn [[point freqs]] (< 1 freqs)))
+   count
+   )
+  )
+
+(overlaps (parse-5 sample-5))
+;; => 5
+
+(comment
+  (overlaps (parse-5 (puzzle-in 5)))
+  ;; => 6225
+  ;; => 22116
+  )
 
