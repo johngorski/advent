@@ -581,7 +581,7 @@ forward 2")
    (1 2 1 6 0 1 2 3 3 4 1 2 3 3 3 4 4 5 5 6 8)
    (0 1 0 5 6 0 1 2 2 3 0 1 2 2 2 3 3 4 4 5 7 8)
    (6 0 6 4 5 6 0 1 1 2 6 0 1 1 1 2 2 3 3 4 6 7 8 8 8 8)
-  ))
+   ))
 
 (nth (iterate fish-day sample-6) 18)
 ;; => (6 0 6 4 5 6 0 1 1 2 6 0 1 1 1 2 2 3 3 4 6 7 8 8 8 8)
@@ -632,4 +632,52 @@ forward 2")
 
 (min-crab-fuel sample-7)
 ;; => 37
+
+;; No network--gets the sample problem answer correct, but we'll wait for a network connection.
+
+;; Day 8
+
+(def sample-entry-8 (map str '(acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab |
+                                       cdfeb fcadb cdfeb cdbaf)))
+
+(def sample-8 "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
+edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec | fcgedb cgb dgebacf gc
+fgaebd cg bdaec gdafb agbcfd gdcbef bgcad gfac gcb cdgabef | cg cg fdcagb cbg
+fbegcd cbd adcefb dageb afcb bc aefdc ecdab fgdeca fcdbega | efabcd cedba gadfec cb
+aecbfdg fbg gf bafeg dbefa fcge gcbea fcaegb dgceab fcbdga | gecf egdcabf bgf bfgea
+fgeab ca afcebg bdacfeg cfaedg gcfdb baec bfadeg bafgc acf | gebdcfa ecba ca fadegcb
+dbcfg fgd bdegcaf fgec aegbdf ecdfab fbedc dacgb gdcebf gf | cefg dcbef fcge gbcadfe
+bdfegc cbegaf gecbf dfcage bdacg ed bedf ced adcbefg gebcd | ed bcgafe cdgba cbgef
+egadfb cdbfeg cegd fecab cgb gbdefca cg fgcdab egfdb bfceg | gbdfcae bgc cg cgb
+gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce")
+
+(defn parse-8 [in]
+  (->> (string/split-lines in)
+       (map (fn [entry-line] (string/split entry-line #" \| ")))
+       (map (fn [pattern-output] (map #(string/split % #"\s+") pattern-output)))
+       )
+  )
+
+(parse-8 sample-8)
+
+(count "abd")
+;; => 3
+
+(defn count-1-4-7-8 [entries]
+  (let [length-counts (apply merge-with +
+                             (map
+                              (fn [[_ output]]
+                                (frequencies (map count output)))
+                              entries))]
+    {1 (get length-counts 2 0)
+     4 (get length-counts 4 0)
+     7 (get length-counts 3 0)
+     8 (get length-counts 7 0)}))
+
+(count-1-4-7-8 (parse-8 sample-8))
+
+(reduce + (map second (count-1-4-7-8 (parse-8 sample-8))))
+;; => 26
+
+;; Clears day 8 second sample, nice.
 
