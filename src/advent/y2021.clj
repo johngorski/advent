@@ -681,3 +681,73 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
 ;; Clears day 8 second sample, nice.
 
+(def sample-9
+  "2199943210
+3987894921
+9856789892
+8767896789
+9899965678")
+
+(defn parse-9 [in]
+  (mapv (fn [line] (mapv #(Integer/parseInt %) (string/split line #""))) (string/split-lines in)))
+
+(parse-9 sample-9)
+
+(get [] -1)
+
+(defn low-at
+  ;; Value at [row col] when [row col] is a low, else nil
+  [cave pos]
+  (let [[row col] pos
+        val (get-in cave pos)
+        north (get-in cave [(dec row) col])
+        south (get-in cave [(inc row) col])
+        east (get-in cave [row (inc col)])
+        west (get-in cave [row (dec col)])
+        ]
+    (when (and
+           (or (nil? north) (< val north))
+           (or (nil? south) (< val south))
+           (or (nil? east) (< val east))
+           (or (nil? west) (< val west))
+           )
+      val)
+    )
+  )
+
+(get-in (parse-9 sample-9) [0 0])
+
+(comment
+  (let [cave (parse-9 sample-9)]
+    (for [row-idx (range (count cave))]
+      (for [col-idx (range (count (cave row-idx)))]
+        (low-at cave [row-idx col-idx]))))
+  )
+
+(comment
+  ((nil 1 nil nil nil nil nil nil nil 0)
+   (nil nil nil nil nil nil nil nil nil nil)
+   (nil nil 5 nil nil nil nil nil nil nil)
+   (nil nil nil nil nil nil nil nil nil nil)
+   (nil nil nil nil nil nil 5 nil nil nil)))
+
+(defn risk-level [cave pos]
+  (if-let [low (low-at cave pos)]
+    (inc low)
+    0))
+
+(defn sum-risks [cave]
+  (reduce
+   +
+   (for [row-idx (range (count cave))
+         col-idx (range (count (cave row-idx)))]
+     (risk-level cave [row-idx col-idx]))))
+
+(sum-risks (parse-9 sample-9))
+;; => 15
+;; looks good for the sample
+
+;; Day 10, woo!
+
+
+
