@@ -596,8 +596,40 @@ forward 2")
 
 (map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))
 
-(commment
-(count (nth (iterate fish-day (map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))) 80))
+;; (commment
+;; (count (nth (iterate fish-day (map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))) 80))
 ;; => 353079
-)
+;; )
+
+(comment
+  ;; too slow for day 6 part 2 (not surprising)
+  (count (nth (iterate fish-day (map #(Integer/parseInt (string/trim %)) (string/split (puzzle-in 6) #","))) 256))
+  )
+
+;; Skip ahead to day 7
+
+;; Minimum crab fuel seems like it would be a value at the median.
+;; If you sort the crabs, keep removing the outermost crabs until we're at the middle.
+;; Anywhere inside will do, and anywhere inside will have the same fuel consumptin.
+
+(def sample-7 [16,1,2,0,4,2,7,1,2,14])
+
+(defn fuel-consumption [position crabs]
+  (reduce + (map #(Math/abs (- % position)) crabs)))
+
+(fuel-consumption 2 sample-7)
+
+(defn median [nums]
+  (let [N (count nums)
+        sorted (sort nums)]
+    (nth sorted (Math/floor (/ N 2)))))
+
+(median sample-7)
+;; => 2
+
+(defn min-crab-fuel [crabs]
+  (fuel-consumption (median crabs) crabs))
+
+(min-crab-fuel sample-7)
+;; => 37
 
