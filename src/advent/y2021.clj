@@ -749,5 +749,17 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
 ;; Day 10, woo!
 
+(defn first-unbalanced [stack chars]
+  (when (not-empty chars)
+    (let [[top & below] stack
+          [head & tail] chars]
+      (case head
+        \{ (recur (conj stack \} tail))
+        \( (recur (conj stack \) tail))
+        \[ (recur (conj stack \] tail))
+        \< (recur (conj stack \> tail))
+        (if (= top head)
+          (recur below tail)
+          top)))))
 
 
