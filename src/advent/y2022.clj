@@ -2,7 +2,7 @@
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.set :as sets]
+   [clojure.sets :as sets]
    [clojure.string :as string]))
 
 (defn in [day]
@@ -11,6 +11,56 @@
 
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
+
+;; Day 3
+
+;; Find the item type that appears in both compartments of each rucksack.
+;; What is the sum of the priorities of those item types?
+
+(defn both-compartments-item [rucksack]
+  (let [[left right] (partition (/ (count rucksack) 2) rucksack)]
+    (first (sets/intersection (set left) (set right)))))
+
+;; (both-compartments-item "vJrwpWtwJgWrhcsFMMfFFhFp")
+;; => \p
+
+(defn item-priority [item]
+  (let [A (int \A)
+        Z (int \Z)
+        a (int \a)
+        z (int \z)
+        i (int item)]
+    (cond
+      (<= a i z)
+      (inc (- (int item) (int \a)))
+
+      (<= A i Z)
+      (+ 27 (- (int item) (int \A)))
+      )))
+
+(comment
+  (item-priority \a)
+  ;; => 1
+  (item-priority \z)
+  ;; => 26
+  (item-priority \A)
+  ;; => 27
+
+  (reduce + (map (comp item-priority both-compartments-item) (in-lines 3))))
+  ;; => 7793
+
+(defn badge-item [rucksacks]
+  (first (apply sets/intersection (map set rucksacks))))
+
+(comment
+  (badge-item
+   ["vJrwpWtwJgWrhcsFMMfFFhFp"
+    "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
+    "PmmdzqPrVvPwwTWBwg"])
+  ;; => \r
+
+  (reduce + (map (comp item-priority badge-item) (partition 3 (in-lines 3)))))
+  ;; => 2499
 
 ;; Day 2
 
