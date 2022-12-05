@@ -12,6 +12,52 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 4
+
+(defn assignment [s]
+  (map edn/read-string (string/split s #"-")))
+
+;; (assignment "2-4")
+;; => (2 4)
+
+(defn assignment-pair [s]
+  (map assignment (string/split s #",")))
+
+;; (assignment-pair "2-4,6-8")
+;; => ((2 4) (6 8))
+
+(defn fully-overlaps? [left right]
+  (let [[l-bottom l-top] left
+        [r-bottom r-top] right]
+    (cond
+      (= l-bottom r-bottom) true
+      (< r-bottom l-bottom) (recur right left)
+      :else (<= r-top l-top))))
+
+;; (fully-overlaps? [0 5] [1 3])
+;; => true
+;; (fully-overlaps? [0 3] [1 5])
+;; => false
+
+;; (count (filter #(apply fully-overlaps? %) (map assignment-pair (in-lines 4))))
+;; => 571
+
+(defn overlaps? [left right]
+  (let [[l-bottom l-top] left
+        [r-bottom r-top] right]
+    (cond
+      (= l-bottom r-bottom) true
+      (< r-bottom l-bottom) (recur right left)
+      :else (<= r-bottom l-top))))
+
+;; (overlaps? [5 7] [7 9])
+;; => true
+;; (overlaps? [5 7] [8 9])
+;; => false
+
+;; (count (filter #(apply overlaps? %) (map assignment-pair (in-lines 4))))
+;; => 917
+
 ;; Day 3
 
 ;; Find the item type that appears in both compartments of each rucksack.
@@ -20,6 +66,7 @@
 (defn both-compartments-item [rucksack]
   (let [[left right] (partition (/ (count rucksack) 2) rucksack)]
     (first (sets/intersection (set left) (set right)))))
+;; => #'advent.y2022/both-compartments-item
 
 ;; (both-compartments-item "vJrwpWtwJgWrhcsFMMfFFhFp")
 ;; => \p
