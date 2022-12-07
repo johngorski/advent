@@ -12,6 +12,43 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 6
+
+(defn packet-start
+  ([input] (packet-start 4 (take 4 input) (drop 4 input)))
+  ([index window remainder]
+   (if (= 4 (count (set window)))
+     index
+     (let [[head & tail] remainder]
+       (recur (inc index) (concat (drop 1 window) [head]) tail)))))
+
+;; (packet-start "mjqjpqmgbljsphdztnvjfqwrcgsmlb")
+;; => 7
+
+;; (packet-start (first (in-lines 6)))
+;; => 1896
+
+(defn message-start
+  ([input] (message-start 14 (take 14 input) (drop 14 input)))
+  ([index window remainder]
+   (if (= 14 (count (set window)))
+     index
+     (let [[head & tail] remainder]
+       (recur (inc index) (concat (drop 1 window) [head]) tail)))))
+
+(comment
+  (map message-start [
+                      "mjqjpqmgbljsphdztnvjfqwrcgsmlb"
+                      "bvwbjplbgvbhsrlpgdmjqwftvncz"
+                      "nppdvjthqldpwncqszvftbrmjlhg"
+                      "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg"
+                      "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw"
+                      ]))
+;; => (19 23 23 29 26)
+
+;; (message-start (first (in-lines 6)))
+;; => 3452
+
 ;; Day 5
 
 (defn stack [s]
