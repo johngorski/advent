@@ -3,7 +3,9 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.set :as sets]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [clojure.zip :as zip]
+   [instaparse.core :as insta]))
 
 (defn in [day]
   (map edn/read-string
@@ -11,6 +13,228 @@
 
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
+
+;; Day 7
+
+(def sample-7
+  ["$ cd /"
+   "$ ls"
+   "dir a"
+   "14848514 b.txt"
+   "8504156 c.dat"
+   "dir d"
+   "$ cd a"
+   "$ ls"
+   "dir e"
+   "29116 f"
+   "2557 g"
+   "62596 h.lst"
+   "$ cd e"
+   "$ ls"
+   "584 i"
+   "$ cd .."
+   "$ cd .."
+   "$ cd d"
+   "$ ls"
+   "4060174 j"
+   "8033020 d.log"
+   "5626152 d.ext"
+   "7214296 k"])
+
+(def parse-log-line
+  (insta/parser
+   "line = cd | ls | directory | file
+    ls = '$ ls'
+    cd = '$ cd ' dir
+    dir = '/' | '..' | #'\\w+'
+    file = size #'\\s+' name
+    directory = 'dir ' dir
+    name = #'[A-Za-z0-9.]+'
+    size = #'\\d+'"))
+
+(comment
+  (parse-log-line "$ ls")
+  ;; => [:line [:ls "$ ls"]]
+  (parse-log-line "$ cd xyz")
+  ;; => [:line [:cd "$ cd " [:dir "xyz"]]]
+  (parse-log-line "dir d")
+  ;; => [:line [:directory "dir " [:dir "d"]]]
+
+  (map parse-log-line sample-7)
+
+  [:line [:cd "$ cd " [:dir "/"]]]
+  [:line [:ls "$ ls"]]
+  [:line [:directory "dir " [:dir "a"]]]
+  [:line [:file [:size "14848514"] " " [:name "b.txt"]]]
+  [:line [:file [:size "8504156"] " " [:name "c.dat"]]]
+  [:line [:directory "dir " [:dir "d"]]]
+  [:line [:cd "$ cd " [:dir "a"]]]
+  [:line [:ls "$ ls"]]
+  [:line [:directory "dir " [:dir "e"]]]
+  [:line [:file [:size "29116"] " " [:name "f"]]]
+  [:line [:file [:size "2557"] " " [:name "g"]]]
+  [:line [:file [:size "62596"] " " [:name "h.lst"]]]
+  [:line [:cd "$ cd " [:dir "e"]]]
+  [:line [:ls "$ ls"]]
+  [:line [:file [:size "584"] " " [:name "i"]]]
+  [:line [:cd "$ cd " [:dir ".."]]]
+  [:line [:cd "$ cd " [:dir ".."]]]
+  [:line [:cd "$ cd " [:dir "d"]]]
+  [:line [:ls "$ ls"]]
+  [:line [:file [:size "4060174"] " " [:name "j"]]]
+  [:line [:file [:size "8033020"] " " [:name "d.log"]]]
+  [:line [:file [:size "5626152"] " " [:name "d.ext"]]]
+  [:line [:file [:size "7214296"] " " [:name "k"]]])
+
+(defmulti info<-line (fn [[_ [line-type]]] line-type))
+
+(defmethod info<-line :ls [_] [:ls])
+(defmethod info<-line :cd [[_ [_ _ [_ dir]]]] [:cd dir])
+(defmethod info<-line :directory [[_ [_ _ dir]]] dir)
+(defmethod info<-line :file [[_ [_ [_ size] _ [_ name]]]] [:file name (edn/read-string size)])
+
+(comment
+  (info<-line [:line [:ls "$ ls"]])
+  ;; => [:ls]
+  (info<-line [:line [:cd "$ cd " [:dir ".."]]])
+  ;; => [:cd ".."]
+  (info<-line [:line [:directory "dir " [:dir "a"]]])
+  ;; => [:dir "a"]
+  (info<-line [:line [:file [:size "4060174"] " " [:name "j"]]])
+  ;; => [:file "j" 4060174]
+
+  {"a" {"e" {"i" 584}
+        "f" 29116
+        "g" 2557
+        "h.lst" 62596}
+   "b.txt" 14848514
+   "c.dat" 8504156
+   "d" {"j" 4060174
+        "d.log" 8033020
+        "d.ext" 5626152
+        "k" 7214296}}
+
+  )
+
+;; Y'know, maybe forget the zipper and just keep track of the file structure
+;; and current directory?
+
+(defn update-fs [[cmd & args]]
+  (case cmd
+    :ls
+    identity
+
+    :cd
+    (let [dir (first args)]
+      (fn [shell]
+        (update shell
+                :working-directory
+                (case dir
+                  ".."
+                  butlast
+
+                  "/"
+                  (fn [_] ())
+
+                  ;; else
+                  #(concat % [dir]))
+                )))
+
+    :dir
+    (let [dir (first args)]
+      (fn [{:keys [working-directory] :as shell}]
+        (update-in shell
+                   (concat [:files] working-directory [dir])
+                   #(or % {})
+                   )))
+
+    :file
+    (let [[file size] args]
+      (fn [{:keys [working-directory] :as shell}]
+        (assoc-in shell
+                  (concat [:files] working-directory [file])
+                  size)))))
+
+
+(defn infer-fs [infos]
+  (let [updates (map update-fs infos)]
+    (:files (reduce #(%2 %1) {:files {} :working-directory ()} updates))))
+
+
+(defn files-from-input [input]
+  (infer-fs (map (comp info<-line parse-log-line) input)))
+
+(comment
+  (files-from-input sample-7)
+  {"a" {"e" {"i" 584},
+        "f" 29116,
+        "g" 2557,
+        "h.lst" 62596},
+   "b.txt" 14848514,
+   "c.dat" 8504156,
+   "d" {"j" 4060174,
+        "d.log" 8033020,
+        "d.ext" 5626152,
+        "k" 7214296}})
+
+(defn total-size [files path]
+  (let [dir (get-in files path)]
+    (cond
+      (number? dir)
+      dir
+
+      (empty? dir)
+      0
+
+      :else ;; map
+      (reduce + (map (fn [key] (total-size files (concat path [key]))) (keys dir)))
+      ))
+  )
+
+(comment
+  (total-size (files-from-input sample-7) ["a" "e"])
+  (total-size (files-from-input sample-7) ["a"])
+  (total-size (files-from-input sample-7) ["d"])
+  (total-size (files-from-input sample-7) [])
+  )
+
+(defn all-directories [files from]
+  (let [current-directory (get-in files from)]
+    (when (map? current-directory)
+      (concat [from] (mapcat (fn [subdir] (all-directories files (concat from [subdir]))) (keys current-directory)))
+      )))
+
+(comment
+  (all-directories (files-from-input sample-7) ()))
+;; => (() ("a") ("a" "e") ("d"))
+(comment
+  (let [files (files-from-input sample-7)]
+    (map (fn [dir] [dir (total-size files dir)]) (all-directories files ()))))
+;; => ([() 48381165] [("a") 94853] [("a" "e") 584] [("d") 24933642])
+
+(defn total-size-sum [input]
+  (reduce + (let [files (files-from-input input)
+                  sizes (map (fn [dir] (total-size files dir)) (all-directories files ()))]
+              (filter #(<= % 100000) sizes))))
+
+(comment
+  (total-size-sum sample-7)
+  )
+;; => 95437
+
+(comment
+  (total-size-sum (in-lines 7)))
+;; => 1490523
+
+;; Part 2
+(comment 
+  (let [total-disk 70000000
+        space-needed 30000000
+        used 1490523
+        current-unused (- total-disk used)
+        required (- space-needed current-unused)]
+    (apply min (filter #(<= required %) ))
+    ))
 
 ;; Day 6
 
@@ -174,7 +398,7 @@
           "9" (stack "HPSLGBNQ")}
          (drop 10 (in-lines 5)))]
     (apply str (map (comp first final-crates str inc) (range 9)))))
-  ;; => "LBBVJBRMH"
+;; => "LBBVJBRMH"
 
 ;; Day 4
 
@@ -328,18 +552,18 @@
              "X" :Rock
              "Y" :Paper
              "Z" :Scissors}]
-    (map #(rps-decode key %) (map #(string/split % #"\s+") (in-lines 2)))))
+    (map #(rps-decode key %) (map #(string/split % #"\s+") (in-lines 2))))
 
-(rps-strategy-score
- {"A" :Rock
-  "B" :Paper
-  "C" :Scissors
-  "X" :Rock
-  "Y" :Paper
-  "Z" :Scissors}
- [["A" "Y"]
-  ["B" "X"]
-  ["C" "Z"]])
+  (rps-strategy-score
+   {"A" :Rock
+    "B" :Paper
+    "C" :Scissors
+    "X" :Rock
+    "Y" :Paper
+    "Z" :Scissors}
+   [["A" "Y"]
+    ["B" "X"]
+    ["C" "Z"]]))
 
 (comment
   (rps-strategy-score
