@@ -205,12 +205,18 @@
       )))
 
 (comment
-  (all-directories (files-from-input sample-7) ()))
-;; => (() ("a") ("a" "e") ("d"))
-(comment
-  (let [files (files-from-input sample-7)]
-    (map (fn [dir] [dir (total-size files dir)]) (all-directories files ()))))
-;; => ([() 48381165] [("a") 94853] [("a" "e") 584] [("d") 24933642])
+  (all-directories (files-from-input sample-7) ())
+  ;; => (() ("a") ("a" "e") ("d"))
+  (comment
+    (let [files (files-from-input sample-7)]
+      (map (fn [dir] [dir (total-size files dir)]) (all-directories files ()))))
+  ;; => ([() 48381165] [("a") 94853] [("a" "e") 584] [("d") 24933642])
+  )
+
+(defn file-sizes [input]
+  (let [files (files-from-input input)]
+    (map (fn [dir] (total-size files dir)) (all-directories files ()))
+    ))
 
 (defn total-size-sum [input]
   (reduce + (let [files (files-from-input input)
@@ -219,22 +225,29 @@
 
 (comment
   (total-size-sum sample-7)
+  ;; => 95437
+  (total-size-sum (in-lines 7))
+  ;; => 1490523
   )
-;; => 95437
-
-(comment
-  (total-size-sum (in-lines 7)))
-;; => 1490523
 
 ;; Part 2
-(comment 
+(defn smallest-needed [input]
   (let [total-disk 70000000
         space-needed 30000000
-        used 1490523
+        files (files-from-input input)
+        used (total-size files ())
         current-unused (- total-disk used)
         required (- space-needed current-unused)]
-    (apply min (filter #(<= required %) ))
+    (apply min (filter #(<= required %) (file-sizes input)))
     ))
+
+(comment
+  (smallest-needed sample-7)
+  ;; => 24933642
+
+  (smallest-needed (in-lines 7))
+  ;; => 12390492
+  )
 
 ;; Day 6
 
