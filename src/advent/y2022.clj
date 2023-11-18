@@ -14,6 +14,102 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 8
+
+(def sample-8
+  (string/split
+   "30373
+25512
+65332
+33549
+35390
+" #"\n"))
+
+(defn forest-from [input]
+  (mapv (fn [row] (mapv edn/read-string (string/split row #""))) input))
+
+(comment
+  (forest-from sample-8)
+  (forest-from (in-lines 8)))
+
+;; Let's traverse the forest from N, S, E, and W, and for each row, count
+;; the number of visible trees.
+
+;; Okay fine, sometimes it's easier to write it out imperatively first to
+;; keep one's head straight.
+;;
+;; max-height := -1
+;; visible-trees := #{}
+;; for (tree of line) {
+;;   h := (tree-height tree)
+;;   if (h > max-height) {
+;;     max := h
+;;     (conj visible-trees tree)
+;;     if (max-height = 9) break;
+;;   }
+;; }
+;; return (count visible-trees)
+;;
+;; So we can do a loop/recur and get an answer, even though there's probably
+;; some combination of seq functions which would give us a more elegant
+;; answer. Probably some transducer-y thing. Worth looking up.
+;;
+;; Upon further consideration, this may also simply be (reduce) vs. a seq of
+;; trees with their heights. Perhaps the tricky part would be terminating the
+;; reduction early once we see the first 9.
+
+(defn tree-line [forest start-tree [delta-row delta-col]]
+  (let [max-row (dec (count forest))
+        max-col (dec (count (first forest)))
+        in-forest? (fn [[row col]] (and (<= 0 row max-row) (<= 0 col max-col)))]
+    (take-while
+     in-forest?
+     (iterate
+      (fn [[r c]]
+        [(+ r delta-row)
+         (+ c delta-col)])
+      start-tree))
+    ))
+
+(comment
+  (tree-line sample-8 [0 0] [0 1])
+  (tree-line sample-8 [0 0] [1 0])
+  (tree-line sample-8 [1 1] [1 0])
+  )
+
+(defn tree-height [forest tree]
+  (get-in forest tree))
+
+(comment
+  (tree-height forest [1 1]))
+
+(defn visible-trees [forest line]
+  (loop [max-height -1
+         visible #{}
+         [tree & remaining] line]
+    (if (or (nil? tree) (<= 9 max-height))
+      visible
+      (let [h (tree-height forest tree)]
+        (recur
+         (max h max-height)
+         (if (< max-height h)
+           (conj visible tree)
+           visible)
+         remaining
+         )))))
+
+(comment
+  (let [forest (forest-from sample-8)]
+    (visible-trees forest (tree-line forest [0 0] [0 1]))))
+
+;; Good start. Last bit for part 1:
+;; - take all the perimeter trees and face them inwards
+;; - get the sets of all visible trees
+;; - counts the union of all those sets.
+
+(comment
+  (in-lines 8))
+
 ;; Day 7
 
 (def sample-7
