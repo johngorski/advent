@@ -14,9 +14,60 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+(defn manhattan-distance [p1 p2]
+  (comment (def *dbg* {:p1 p1, :p2 p2}))
+  (reduce + (map (comp abs -) p1 p2)))
+
+(comment
+  (manhattan-distance [0 0] [0 1])
+  (manhattan-distance [3 -4] [-5 12]))
+
 ;; Day 9
 
+(def sample-9 (string/split "R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2" #"\n"))
 
+(defn rope-abuts? [head tail]
+  (let [[hr hc] head
+        [tr tc] tail]
+    (and (<= (abs (- hr tr)) 1)
+         (<= (abs (- hc tc)) 1))))
+
+(def up [-1 0])
+(def down [1 0])
+(def right [0 1])
+(def left [0 -1])
+
+(defn move-rope [direction]
+  (fn [{:keys [head tail]}]
+    (let [[hr hc] head
+          head' (map + head direction)]
+      {:head head'
+       :tail (if (rope-abuts? head' tail)
+               tail
+               head)})))
+
+(def rope-origin {:head [0 0], :tail [0 0]})
+
+(comment
+  ((move-rope right) rope-origin)
+  ;; => {:head (0 1), :tail [0 0]}
+
+  (nth (iterate (move-rope right) rope-origin) 4)
+  ;; => {:head (0 4), :tail (0 3)}
+
+  (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 1)
+  ;; => {:head (-1 4), :tail (0 3)}
+
+  (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 4)
+  ;; => {:head (-4 4), :tail (-3 4)}
+  )
 
 ;; Day 8
 
@@ -145,14 +196,6 @@
    (visible-trees-in-forest (forest-from (in-lines 8))))
   ;; => 1693
   )
-
-(defn manhattan-distance [p1 p2]
-  (comment (def *dbg* {:p1 p1, :p2 p2}))
-  (reduce + (map (comp abs -) p1 p2)))
-
-(comment
-  (manhattan-distance [0 0] [0 1])
-  (manhattan-distance [3 -4] [-5 12]))
 
 (defn viewing-distance [forest tree direction]
   (let [viewer-height (tree-height forest tree)
