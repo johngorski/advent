@@ -44,14 +44,38 @@ R 2" #"\n"))
 (def right [0 1])
 (def left [0 -1])
 
+(defn clamp [minimum maximum]
+  (fn [x]
+    (-> x
+        (max minimum)
+        (min maximum))))
+
+(comment
+  ((clamp -1 1) -2)
+  ;; => -1
+  ((clamp -1 1) 2)
+  ;; => 1
+  ((clamp -1 1) 0)
+  ;; => 0
+  )
+
+(defn towards [head']
+  (fn [tail]
+    (if (rope-abuts? head' tail)
+      tail
+      ;; chase head' by up to 1 row and up to 1 column
+      (let [[hr' hc'] head'
+            [tr tc] tail
+            dr ((clamp -1 1) (- hr' tr))
+            dc ((clamp -1 1) (- hc' tc))]
+        [(+ tr dr) (+ tc dc)]))))
+
 (defn move-rope [direction]
   (fn [{:keys [head tail]}]
     (let [[hr hc] head
           head' (map + head direction)]
       {:head head'
-       :tail (if (rope-abuts? head' tail)
-               tail
-               head)})))
+       :tail ((towards head') tail)})))
 
 (def rope-origin {:head [0 0], :tail [0 0]})
 
@@ -67,6 +91,28 @@ R 2" #"\n"))
 
   (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 4)
   ;; => {:head (-4 4), :tail (-3 4)}
+  )
+
+(defn line->rope-moves [line]
+  (let [[dir n-str] (string/split line #"\s+")]
+    (repeat (edn/read-string n-str) (move-rope (case dir "U" up "D" down "L" left "R" right)))
+    ))
+
+(defn rope-progression [input]
+  (reductions #(%2 %1) rope-origin (mapcat line->rope-moves input)))
+
+(comment
+  (rope-progression sample-9))
+
+(defn rope-tail-visited [input]
+  (into #{} (map :tail (rope-progression input))))
+
+(comment
+  (count (rope-tail-visited sample-9))
+  ;; => 13
+
+  (count (rope-tail-visited (in-lines 9)))
+  ;; => 5930
   )
 
 ;; Day 8
