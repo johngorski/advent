@@ -14,6 +14,10 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 9
+
+
+
 ;; Day 8
 
 (def sample-8
@@ -90,6 +94,13 @@
     (if (or (nil? tree) (<= 9 max-height))
       visible
       (let [h (tree-height forest tree)]
+        (comment ;; neat technique!
+          (def *dbg* {:max-height max-height
+                      :visible visible
+                      :tree tree
+                      :remaining remaining
+                      :h h
+                      }))
         (recur
          (max h max-height)
          (if (< max-height h)
@@ -98,17 +109,117 @@
          remaining
          )))))
 
-(comment
-  (let [forest (forest-from sample-8)]
-    (visible-trees forest (tree-line forest [0 0] [0 1]))))
+(defn visible-trees-in-forest [forest]
+  (let [looking-* (fn [direction] (fn [tree] (tree-line forest tree direction)))
+        looking-east (looking-* [0 1])
+        looking-south (looking-* [1 0])
+        looking-west (looking-* [0 -1])
+        looking-north (looking-* [-1 0])
 
-;; Good start. Last bit for part 1:
-;; - take all the perimeter trees and face them inwards
-;; - get the sets of all visible trees
-;; - counts the union of all those sets.
+        west-edge (looking-south [0 0])
+        north-edge (looking-east [0 0])
+        east-edge (looking-south [0 (dec (count (first forest)))])
+        south-edge (looking-east [(dec (count forest)) 0])
+
+        visible-from (fn [edge looking]
+                       (apply sets/union
+                              (map (fn [tree]
+                                     (visible-trees forest (looking tree)))
+                                   edge)))
+        ]
+    (sets/union (visible-from west-edge looking-east)
+                (visible-from north-edge looking-south)
+                (visible-from east-edge looking-west)
+                (visible-from south-edge looking-north)
+                )
+    ))
 
 (comment
-  (in-lines 8))
+  (count
+   (visible-trees-in-forest (forest-from sample-8)))
+  ;; => 21
+
+  (identity *dbg*)
+
+  (count
+   (visible-trees-in-forest (forest-from (in-lines 8))))
+  ;; => 1693
+  )
+
+(defn manhattan-distance [p1 p2]
+  (comment (def *dbg* {:p1 p1, :p2 p2}))
+  (reduce + (map (comp abs -) p1 p2)))
+
+(comment
+  (manhattan-distance [0 0] [0 1])
+  (manhattan-distance [3 -4] [-5 12]))
+
+(defn viewing-distance [forest tree direction]
+  (let [viewer-height (tree-height forest tree)
+        blocker (first (filter (fn [tree]
+                                 (<= viewer-height (tree-height forest tree)))
+                               (drop 1 (tree-line forest tree direction))))]
+    (or (and blocker (manhattan-distance tree blocker))
+        (let [[dr dc] direction
+              [r c] tree]
+          (if (zero? dr)
+            (if (< dc 0)
+              c
+              (- (count (first forest)) c 1))
+            (if (< dr 0)
+              r
+              (- (count forest) r 1))
+            )))))
+
+(comment
+  (tree-line (forest-from sample-8) [1 2] [-1 0])
+  ;; => ([1 2] [0 2])
+  (viewing-distance (forest-from sample-8) [1 2] [-1 0])
+  ;; => 1
+  (viewing-distance (forest-from sample-8) [1 2] [0 -1])
+  ;; => 1
+  (viewing-distance (forest-from sample-8) [1 2] [0 1])
+  ;; => 2
+  (viewing-distance (forest-from sample-8) [1 2] [1 0])
+  ;; => 2
+
+  (viewing-distance (forest-from sample-8) [3 2] [-1 0])
+  ;; => 2
+  (viewing-distance (forest-from sample-8) [3 2] [0 -1])
+  ;; => 2
+  (viewing-distance (forest-from sample-8) [3 2] [1 0])
+  ;; => 1
+  (viewing-distance (forest-from sample-8) [3 2] [0 1])
+  ;; => 2
+  )
+
+(defn scenic-score [forest tree]
+  (* (viewing-distance forest tree [0 1]) ;; east
+     (viewing-distance forest tree [1 0]) ;; south
+     (viewing-distance forest tree [0 -1]) ;; west
+     (viewing-distance forest tree [-1 0]) ;; north
+     )
+  )
+
+(comment
+  (scenic-score (forest-from sample-8) [1 2])
+  ;; => 4
+  (scenic-score (forest-from sample-8) [3 2])
+  ;; => 8
+  )
+
+(defn scenic-scores [forest]
+  (for [r (range (count forest))
+        c (range (count (first forest)))]
+    (scenic-score forest [r c])
+    ))
+
+(comment
+  (reduce max (scenic-scores (forest-from sample-8)))
+
+  (reduce max (scenic-scores (forest-from (in-lines 8))))
+  ;; => 422059
+  )
 
 ;; Day 7
 
