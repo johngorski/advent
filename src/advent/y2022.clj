@@ -70,14 +70,30 @@ R 2" #"\n"))
             dc ((clamp -1 1) (- hc' tc))]
         [(+ tr dr) (+ tc dc)]))))
 
+(defn ripple-rope
+  "Follow the rope after moving, segment by segment."
+  [rippled rip-tail [middle & to-ripple]]
+  (let [rippled' (concat rippled [rip-tail])]
+    (if (empty? middle)
+      rippled'
+      (let [middle' ((towards rip-tail) middle)]
+        (recur rippled' middle' to-ripple)))))
+
+(comment
+  (defn move-rope [direction]
+    (fn [[head tail]]
+      (let [head' (map + head direction)]
+        [head'
+         ((towards head') tail)]))))
+
 (defn move-rope [direction]
-  (fn [{:keys [head tail]}]
+  (fn [[head & tail]]
     (let [[hr hc] head
           head' (map + head direction)]
-      {:head head'
-       :tail ((towards head') tail)})))
+      (ripple-rope [] head' tail)
+      )))
 
-(def rope-origin {:head [0 0], :tail [0 0]})
+(def rope-origin [[0 0] [0 0]])
 
 (comment
   ((move-rope right) rope-origin)
@@ -86,10 +102,12 @@ R 2" #"\n"))
   (nth (iterate (move-rope right) rope-origin) 4)
   ;; => {:head (0 4), :tail (0 3)}
 
-  (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 1)
+  (nth (iterate (move-rope up) ['(0 4) '(0 3)]) 1)
+  ;; (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 1)
   ;; => {:head (-1 4), :tail (0 3)}
 
-  (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 4)
+  (nth (iterate (move-rope up) ['(0 4) '(0 3)]) 4)
+  ;; (nth (iterate (move-rope up) {:head '(0 4), :tail '(0 3)}) 4)
   ;; => {:head (-4 4), :tail (-3 4)}
   )
 
@@ -105,7 +123,7 @@ R 2" #"\n"))
   (rope-progression sample-9))
 
 (defn rope-tail-visited [input]
-  (into #{} (map :tail (rope-progression input))))
+  (into #{} (map last (rope-progression input))))
 
 (comment
   (count (rope-tail-visited sample-9))
@@ -113,6 +131,15 @@ R 2" #"\n"))
 
   (count (rope-tail-visited (in-lines 9)))
   ;; => 5930
+
+  ;; Part 2
+  (count
+   (into #{}
+         (map last
+              (reductions #(%2 %1)
+                          (repeat 10 [0 0])
+                          (mapcat line->rope-moves (in-lines 9))))))
+  ;; => 2443
   )
 
 ;; Day 8
