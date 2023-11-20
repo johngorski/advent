@@ -22,6 +22,265 @@
   (manhattan-distance [0 0] [0 1])
   (manhattan-distance [3 -4] [-5 12]))
 
+;; Day 10
+
+(def sample-10-small (string/split "noop
+addx 3
+addx -5" #"\n"))
+
+(def sample-10-larger (string/split "addx 15
+addx -11
+addx 6
+addx -3
+addx 5
+addx -1
+addx -8
+addx 13
+addx 4
+noop
+addx -1
+addx 5
+addx -1
+addx 5
+addx -1
+addx 5
+addx -1
+addx 5
+addx -1
+addx -35
+addx 1
+addx 24
+addx -19
+addx 1
+addx 16
+addx -11
+noop
+noop
+addx 21
+addx -15
+noop
+noop
+addx -3
+addx 9
+addx 1
+addx -3
+addx 8
+addx 1
+addx 5
+noop
+noop
+noop
+noop
+noop
+addx -36
+noop
+addx 1
+addx 7
+noop
+noop
+noop
+addx 2
+addx 6
+noop
+noop
+noop
+noop
+noop
+addx 1
+noop
+noop
+addx 7
+addx 1
+noop
+addx -13
+addx 13
+addx 7
+noop
+addx 1
+addx -33
+noop
+noop
+noop
+addx 2
+noop
+noop
+noop
+addx 8
+noop
+addx -1
+addx 2
+addx 1
+noop
+addx 17
+addx -9
+addx 1
+addx 1
+addx -3
+addx 11
+noop
+noop
+addx 1
+noop
+addx 1
+noop
+noop
+addx -13
+addx -19
+addx 1
+addx 3
+addx 26
+addx -30
+addx 12
+addx -1
+addx 3
+addx 1
+noop
+noop
+noop
+addx -9
+addx 18
+addx 1
+addx 2
+noop
+noop
+addx 9
+noop
+noop
+noop
+addx -1
+addx 2
+addx -37
+addx 1
+addx 3
+noop
+addx 15
+addx -21
+addx 22
+addx -6
+addx 1
+noop
+addx 2
+addx 1
+noop
+addx -10
+noop
+noop
+addx 20
+addx 1
+addx 2
+addx 2
+addx -6
+addx -11
+noop
+noop
+noop" #"\n"))
+
+(def cycles {"noop" 1 "addx" 2})
+
+(defn line->crt-instruction [line]
+  (let [[op & args] (string/split line #"\s+")]
+    (concat [op] (map edn/read-string args))))
+
+(comment
+  (line->crt-instruction "addx -11")
+  ;; => ("addx" -11)
+  (line->crt-instruction "noop")
+  ;; => ("noop")
+  )
+
+(defn crt-update
+  "Returns a state transition function for the CRT CPU based on the given instruction."
+  [[op & args]]
+  (case op
+    "noop" identity
+    "addx" (fn [cpu] (update cpu :X (fn [X] (+ X (first args))))))
+  )
+
+(defn crt-tick
+  "Tick the cathode ray tube CPU, returning the new CPU state.
+  crt cpu:
+  pc is a program counter pointing at the current instruction
+  noop takes one tick
+  addx takes two
+  eval happens *after* the instruction's delay
+  one register, X. Initialized to 1.
+  -eval-at is the tick at which the next eval will occur."
+  [{:keys [instructions
+           pc
+           X
+           tick
+           -eval-at
+           ]
+    :as cpu}]
+  (cond
+    (nil? -eval-at) ;; No -eval-at -> initialize CPU
+    (assoc cpu
+           :pc 0
+           :X 1
+           :tick 0
+           :-eval-at (cycles (first (first instructions))))
+
+    (< tick -eval-at)
+    (update cpu :tick inc)
+
+    (< -1 pc (count instructions))
+    (let [instruction (get instructions pc)
+          pc' (inc pc)
+          next-instruction (get instructions pc')
+          next-op (first next-instruction)]
+      (comment
+       (def *dbg* {:instruction instruction
+                   :pc' pc'
+                   :next-instruction next-instruction
+                   :next-op next-op
+                   :cpu cpu}))
+      (-> ((crt-update instruction) cpu) ;; eval CPU
+          (assoc :pc pc') ;; advance program counter
+          (update :-eval-at #(+ % (get cycles next-op 0))) ;; set new -eval-at deadline
+          (update :tick inc)
+          ))
+
+    :else
+    (update cpu :tick inc)
+    ))
+
+(comment
+  (->> (take 10 (iterate crt-tick (crt-tick {:instructions [["noop"] ["addx" 3] ["addx" -5]]})))
+       (map (fn [cpu] [(:tick cpu) (:-eval-at cpu) (:X cpu)]))))
+;; => ([0 1 1] [1 1 1] [2 3 1] [3 3 1] [4 5 4] [5 5 4] [6 5 -1] [7 5 -1] [8 5 -1] [9 5 -1])
+
+(defn signal-strength [cpu]
+  (* (:tick cpu) (* (:X cpu))))
+
+(defn crt-cpu-progression [instructions]
+  (take-while
+   (fn [{:keys [tick -eval-at]}]
+     (<= tick -eval-at))
+   (iterate crt-tick
+            (crt-tick {:instructions instructions}))))
+
+(comment
+  (count
+   (take 10 (crt-cpu-progression [["noop"] ["addx" 3] ["addx" -5]]))))
+;; => 6
+
+(defn interesting-crt-state? [{:keys [tick]}]
+  (zero? (rem (- tick 20) 40)))
+
+(defn day-10-part-1 [instructions]
+  (reduce +
+          (map signal-strength
+               (filter interesting-crt-state?
+                       (crt-cpu-progression instructions)))))
+
+(comment
+  (day-10-part-1 (mapv line->crt-instruction sample-10-larger))
+  ;; => 13140
+
+  (day-10-part-1 (mapv line->crt-instruction (in-lines 10)))
+  ;; => 17180
+  )
+
 ;; Day 9
 
 (def sample-9 (string/split "R 4
