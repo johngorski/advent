@@ -229,11 +229,11 @@ noop" #"\n"))
           next-instruction (get instructions pc')
           next-op (first next-instruction)]
       (comment
-       (def *dbg* {:instruction instruction
-                   :pc' pc'
-                   :next-instruction next-instruction
-                   :next-op next-op
-                   :cpu cpu}))
+        (def *dbg* {:instruction instruction
+                    :pc' pc'
+                    :next-instruction next-instruction
+                    :next-op next-op
+                    :cpu cpu}))
       (-> ((crt-update instruction) cpu) ;; eval CPU
           (assoc :pc pc') ;; advance program counter
           (update :-eval-at #(+ % (get cycles next-op 0))) ;; set new -eval-at deadline
@@ -281,6 +281,64 @@ noop" #"\n"))
   ;; => 17180
   )
 
+;; part 2
+
+(def lit "#")
+(def dark ".")
+
+(defn tick->pixel-position [tick] (rem (dec tick) 40))
+(comment
+  (tick->pixel-position 1)
+  ;; => 0
+  (tick->pixel-position 40)
+  ;; => 39
+  (tick->pixel-position 41)
+  ;; => 0
+  (tick->pixel-position 80)
+  ;; => 39
+  )
+
+(defn pixel [tick X]
+  (if (<= (dec X)
+          (tick->pixel-position tick)
+          (inc X))
+    lit
+    dark))
+
+(defn crt-display [instructions]
+  (map
+   string/join
+   (partition
+    40
+    (into
+     []
+     (comp
+      (map (juxt :tick :X))
+      (drop 1)
+      (take-while (fn [[tick X]] (<= tick 240)))
+      (map (fn [[tick X]] (pixel tick X)))
+      )
+     (crt-cpu-progression instructions)))))
+
+(comment
+  (crt-display (mapv line->crt-instruction sample-10-larger))
+  (comment
+    ("##..##..##..##..##..##..##..##..##..##.."
+     "###...###...###...###...###...###...###."
+     "####....####....####....####....####...."
+     "#####.....#####.....#####.....#####....."
+     "######......######......######......####"
+     "#######.......#######.......#######.....")))
+
+(comment
+  (crt-display (mapv line->crt-instruction (in-lines 10)))
+  ("###..####.#..#.###..###..#....#..#.###.."
+   "#..#.#....#..#.#..#.#..#.#....#..#.#..#."
+   "#..#.###..####.#..#.#..#.#....#..#.###.."
+   "###..#....#..#.###..###..#....#..#.#..#."
+   "#.#..#....#..#.#....#.#..#....#..#.#..#."
+   "#..#.####.#..#.#....#..#.####..##..###.."))
+
 ;; Day 9
 
 (def sample-9 (string/split "R 4
@@ -293,10 +351,10 @@ L 5
 R 2" #"\n"))
 
 (defn rope-abuts? [head tail]
-  (let [[hr hc] head
-        [tr tc] tail]
-    (and (<= (abs (- hr tr)) 1)
-         (<= (abs (- hc tc)) 1))))
+(let [[hr hc] head
+      [tr tc] tail]
+  (and (<= (abs (- hr tr)) 1)
+       (<= (abs (- hc tc)) 1))))
 
 (def up [-1 0])
 (def down [1 0])
@@ -304,39 +362,39 @@ R 2" #"\n"))
 (def left [0 -1])
 
 (defn clamp [minimum maximum]
-  (fn [x]
-    (-> x
-        (max minimum)
-        (min maximum))))
+(fn [x]
+  (-> x
+      (max minimum)
+      (min maximum))))
 
 (comment
-  ((clamp -1 1) -2)
-  ;; => -1
-  ((clamp -1 1) 2)
-  ;; => 1
-  ((clamp -1 1) 0)
-  ;; => 0
-  )
+((clamp -1 1) -2)
+;; => -1
+((clamp -1 1) 2)
+;; => 1
+((clamp -1 1) 0)
+;; => 0
+)
 
 (defn towards [head']
-  (fn [tail]
-    (if (rope-abuts? head' tail)
-      tail
-      ;; chase head' by up to 1 row and up to 1 column
-      (let [[hr' hc'] head'
-            [tr tc] tail
-            dr ((clamp -1 1) (- hr' tr))
-            dc ((clamp -1 1) (- hc' tc))]
-        [(+ tr dr) (+ tc dc)]))))
+(fn [tail]
+  (if (rope-abuts? head' tail)
+    tail
+    ;; chase head' by up to 1 row and up to 1 column
+    (let [[hr' hc'] head'
+          [tr tc] tail
+          dr ((clamp -1 1) (- hr' tr))
+          dc ((clamp -1 1) (- hc' tc))]
+      [(+ tr dr) (+ tc dc)]))))
 
 (defn ripple-rope
-  "Follow the rope after moving, segment by segment."
-  [rippled rip-tail [middle & to-ripple]]
-  (let [rippled' (concat rippled [rip-tail])]
-    (if (empty? middle)
-      rippled'
-      (let [middle' ((towards rip-tail) middle)]
-        (recur rippled' middle' to-ripple)))))
+"Follow the rope after moving, segment by segment."
+[rippled rip-tail [middle & to-ripple]]
+(let [rippled' (concat rippled [rip-tail])]
+  (if (empty? middle)
+    rippled'
+    (let [middle' ((towards rip-tail) middle)]
+      (recur rippled' middle' to-ripple)))))
 
 (comment
   (defn move-rope [direction]
