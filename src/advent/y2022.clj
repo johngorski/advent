@@ -174,7 +174,9 @@ Monkey 3:
   (let [{:keys [items operation throw-to]} (monkeys whose-turn)
         worry (peek items)
         items' (pop items)
-        worry' (quot (operation worry) 3)
+        ;; worry' (quot (operation worry) 3) ;; <-- from Part 1
+        ;; worry' (rem (operation  worry) (* 23 19 13 17)) ;; <-- from Part 2 sample
+        worry' (rem (operation  worry) (* 5 17 2 7 3 11 13 19)) ;; <-- from Part 2 solution
         to-monkey (throw-to worry')
         whose-turn' (if (empty? items')
                       (rem (inc whose-turn) (count monkeys))
@@ -244,7 +246,8 @@ Monkey 3:
    {:id 3, :items nil, :inspected-items 10}))
 
 (defn monkey-business [monkeys]
-  (->> (nth (iterate monkey-round monkeys) 20)
+  ;; (->> (nth (iterate monkey-round monkeys) 20) ;; <-- from Part 1
+  (->> (nth (iterate monkey-round monkeys) 10000)
        (map :inspected-items)
        (sort-by -)
        (take 2)
@@ -257,6 +260,11 @@ Monkey 3:
   ;; => 57838
   )
 
+;; After updating for part 2
+(comment
+  (monkey-business (load-monkeys (in-lines 11)))
+  ;; => 15050382231
+  )
 
 (defn manhattan-distance [p1 p2]
   (comment (def *dbg* {:p1 p1, :p2 p2}))
