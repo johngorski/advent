@@ -14,6 +14,250 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 11
+
+(def sample-11 (string/split "Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1" #"\n"))
+
+(defn queue
+  ([] (clojure.lang.PersistentQueue/EMPTY))
+  ([coll]
+   (reduce conj clojure.lang.PersistentQueue/EMPTY coll)))
+
+(defn monkey-id [line]
+  (edn/read-string (second (re-matches #"Monkey (\d+):" line))))
+
+(comment
+  (monkey-id "Monkey 3:")
+  ;; => 3
+  (monkey-id "Monkey 13:")
+  ;; => 13
+  )
+
+(defn monkey-starting-items [line]
+  (let [[_ list-str] (re-matches #"\s*Starting items: (.+)" line)]
+    (queue (map edn/read-string (string/split list-str #", ")))))
+
+(comment
+  (seq (conj (queue [1 2]) 3))
+  ;; => (1 2 3)
+  (seq (pop (conj (queue [1 2]) 3)))
+  ;; => (2 3)
+  (seq (starting-items-line "  Starting items: 77, 69, 76, 77, 50, 58"))
+  ;; => (77 69 76 77 50 58)
+  (seq (starting-items-line "  Starting items: 53"))
+  ;; => (53)
+  (class (starting-items-line "  Starting items: 53"))
+  ;; => clojure.lang.PersistentQueue
+  (-> (starting-items-line "  Starting items: 53") peek)
+  ;; => 53
+  (-> (starting-items-line "  Starting items: 53") pop seq)
+  ;; => nil
+  (-> (starting-items-line "  Starting items: 77, 69, 76, 77, 50, 58") pop seq)
+  ;; => (69 76 77 50 58)
+  (-> (starting-items-line "  Starting items: 53")))
+
+(defn monkey-op [line]
+  (let [[_ op arg] (re-matches #"\s*Operation: new = old ([+-\\*/]) (\w+)" line)
+        f (symbol op)
+        val (edn/read-string arg)]
+    ;; [f val]
+    (fn [old]
+      ((eval f) old (if (= val 'old)
+                      old
+                      val)))
+    ))
+
+(comment
+  ((monkey-op "  Operation: new = old + 8") 7)
+  ;; => ["+" "8"]
+  ;; => 15
+  ((monkey-op "  Operation: new = old * old") 8)
+  ;; => ["*" "old"]
+  ;; => 64
+  )
+
+(defn monkey-test [line]
+  (let [[_ factor-str] (re-matches #"\s*Test: divisible by (\d+)" line)
+        factor (edn/read-string factor-str)]
+    ;; factor
+    (fn [worry] (zero? (rem worry factor)))
+    ))
+
+(comment
+  (map (monkey-test "  Test: divisible by 3") (range 7))
+  ;; => (true false false true false false true)
+  )
+
+(defn consequent-monkey [line]
+  (edn/read-string (second (re-matches #"\s*If true: throw to monkey (\d+)" line))))
+
+(comment
+  (consequent-monkey "    If true: throw to monkey 4")
+  ;; => 4
+  )
+
+(defn alternative-monkey [line]
+  (edn/read-string (second (re-matches #"\s*If false: throw to monkey (\d+)" line))))
+
+(comment
+  (alternative-monkey "    If false: throw to monkey 2")
+  ;; => 2
+  )
+
+(defn lines->monkey [lines]
+  (let [[monkey-line
+         starting-items-line
+         op-line
+         test-line
+         consequent-line
+         alternative-line]
+        lines
+
+        test (monkey-test test-line)
+        consequent (consequent-monkey consequent-line)
+        alternative (alternative-monkey alternative-line)
+        ]
+    {:id (monkey-id monkey-line)
+     :items (monkey-starting-items starting-items-line)
+     :operation (monkey-op op-line)
+     :throw-to (fn [worry] (if (test worry) consequent alternative))
+     :inspected-items 0}))
+
+(defn load-monkeys [lines]
+  (mapv lines->monkey
+        (remove #(= 1 (count %))
+                (partition-by (fn [line] (empty? line)) lines))))
+
+(defn show-monkeys [monkeys]
+  (map (fn [{:keys [id items inspected-items]}]
+         {:id id
+          :items (seq items)
+          :inspected-items inspected-items})
+       monkeys))
+
+(comment
+  (show-monkeys (load-monkeys sample-11))
+  ({:id 0, :items (79 98)}
+   {:id 1, :items (54 65 75 74)}
+   {:id 2, :items (79 60 97)}
+   {:id 3, :items (74)}))
+
+(defn monkey-throw
+  [{:keys [monkeys whose-turn]
+    :as state}]
+  (let [{:keys [items operation throw-to]} (monkeys whose-turn)
+        worry (peek items)
+        items' (pop items)
+        worry' (quot (operation worry) 3)
+        to-monkey (throw-to worry')
+        whose-turn' (if (empty? items')
+                      (rem (inc whose-turn) (count monkeys))
+                      whose-turn)]
+    {:monkeys (-> monkeys
+                  (update-in [whose-turn :inspected-items] inc)
+                  (assoc-in [whose-turn :items] items')
+                  (update-in [to-monkey :items] conj worry')
+                  )
+     :whose-turn whose-turn'}))
+
+(comment
+  (show-monkeys
+   (:monkeys
+    (monkey-throw
+     (monkey-throw
+      {:whose-turn 0, :monkeys (load-monkeys sample-11)}))))
+  ({:id 0, :items nil, :inspected-items 2}
+   {:id 1, :items (54 65 75 74), :inspected-items 0}
+   {:id 2, :items (79 60 97), :inspected-items 0}
+   {:id 3, :items (74 500 620), :inspected-items 0}))
+
+(defn monkey-turn [state]
+  (if (empty? (get-in state [:monkeys (:whose-turn state) :items]))
+    (update state :whose-turn #(rem (inc %) (count (:monkeys state))))
+    (let [{:keys [whose-turn] :as state'} (monkey-throw state)]
+      (if (= whose-turn (:whose-turn state))
+        (recur state')
+        state'))))
+
+(comment
+  (update (monkey-turn {:whose-turn 0, :monkeys (load-monkeys sample-11)})
+          :monkeys show-monkeys)
+  {:monkeys ({:id 0, :items nil, :inspected-items 2}
+             {:id 1, :items (54 65 75 74), :inspected-items 0}
+             {:id 2, :items (79 60 97), :inspected-items 0}
+             {:id 3, :items (74 500 620), :inspected-items 0}),
+   :whose-turn 1})
+
+(defn monkey-round [monkeys]
+  (loop [state {:monkeys monkeys :whose-turn 0}]
+    (let [state' (monkey-turn state)]
+      (if (= 0 (:whose-turn state'))
+        (:monkeys state')
+        (recur state')))))
+
+(comment
+  (show-monkeys (monkey-round (load-monkeys sample-11)))
+  ({:id 0, :items (20 23 27 26), :inspected-items 2}
+   {:id 1, :items (2080 25 167 207 401 1046), :inspected-items 4}
+   {:id 2, :items nil, :inspected-items 3}
+   {:id 3, :items nil, :inspected-items 5})
+
+  (show-monkeys (monkey-round (monkey-round (load-monkeys sample-11))))
+  ({:id 0, :items (695 10 71 135 350), :inspected-items 6}
+   {:id 1, :items (43 49 58 55 362), :inspected-items 10}
+   {:id 2, :items nil, :inspected-items 4}
+   {:id 3, :items nil, :inspected-items 10})
+
+  (-> (load-monkeys sample-11)
+      monkey-round
+      monkey-round
+      show-monkeys)
+  ({:id 0, :items (695 10 71 135 350), :inspected-items 6}
+   {:id 1, :items (43 49 58 55 362), :inspected-items 10}
+   {:id 2, :items nil, :inspected-items 4}
+   {:id 3, :items nil, :inspected-items 10}))
+
+(defn monkey-business [monkeys]
+  (->> (nth (iterate monkey-round monkeys) 20)
+       (map :inspected-items)
+       (sort-by -)
+       (take 2)
+       (apply *)))
+
+(comment
+  (monkey-business (load-monkeys sample-11))
+  ;; => 10605
+  (monkey-business (load-monkeys (in-lines 11)))
+  ;; => 57838
+  )
+
+
 (defn manhattan-distance [p1 p2]
   (comment (def *dbg* {:p1 p1, :p2 p2}))
   (reduce + (map (comp abs -) p1 p2)))
