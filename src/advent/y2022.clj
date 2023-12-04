@@ -29,13 +29,11 @@ abdefghi" #"\n"))
   (map ch-height "banana")
   ;; => (1 0 13 0 13 0)
   (map ch-height "ESa")
-  ;; => (-28 -14 0)
+  ;; => (25 0 0)
   )
 
 (defn can-step? [from to]
-  (let [from-height (ch-height from)]
-    (or (< from-height 0)
-        (<= (ch-height to) (inc from-height)))))
+  (<= (ch-height to) (inc (ch-height from))))
 
 (comment
   (can-step? \z \E)
@@ -60,15 +58,15 @@ abdefghi" #"\n"))
 
 (comment
   (height-at sample-12 [0 0])
-  ;; => -14
+  ;; => 0
   (ch-height \S)
-  ;; => -14
+  ;; => 0
   (height-at sample-12 [0 1])
   ;; => 0
   (height-at sample-12 [1 0])
   ;; => 0
   (height-at sample-12 [2 5])
-  ;; => -28
+  ;; => 25
   )
 
 (defn heightmap-start [heightmap]
@@ -151,6 +149,7 @@ abdefghi" #"\n"))
       (filter
        (fn [path] (= \E (get-in heightmap (last path))))
        paths))
+     (and (empty? paths) :no-path-found)
      (let [visited' (into visited (map last paths))]
        (recur
         visited'
@@ -173,7 +172,7 @@ abdefghi" #"\n"))
 (comment
   ;; Seems to take a while to run, let's check this again.
   ;; Probably deadlocked somewhere.
-  (count (find-end (in-lines 12))))
+  (dec (count (find-end (in-lines 12)))))
 
 ;; Day 11
 
