@@ -14,6 +14,167 @@
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2022/" day ".txt")))))
 
+;; Day 12
+
+(def sample-12 (string/split "Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi" #"\n"))
+
+(defn ch-height [ch]
+  (- (int (get {\S \a \E \z} ch ch)) (int \a)))
+
+(comment
+  (map ch-height "banana")
+  ;; => (1 0 13 0 13 0)
+  (map ch-height "ESa")
+  ;; => (-28 -14 0)
+  )
+
+(defn can-step? [from to]
+  (let [from-height (ch-height from)]
+    (or (< from-height 0)
+        (<= (ch-height to) (inc from-height)))))
+
+(comment
+  (can-step? \z \E)
+  ;; => true
+  (can-step? \z \S)
+  (can-step? \S \a)
+  ;; => false
+  (can-step? \S \z)
+  (can-step? \a \c)
+  ;; => false
+  (can-step? \m \n)
+  ;; => true
+  (can-step? \m \o)
+  ;; => false
+  (get-in ["apple" "banana"] [0 1])
+  ;; => \p
+  )
+;; so in-lines loads us a ready-made heightmap....
+
+(defn height-at [heightmap [row col]]
+  (ch-height (get-in heightmap [row col] Integer/MAX_VALUE)))
+
+(comment
+  (height-at sample-12 [0 0])
+  ;; => -14
+  (ch-height \S)
+  ;; => -14
+  (height-at sample-12 [0 1])
+  ;; => 0
+  (height-at sample-12 [1 0])
+  ;; => 0
+  (height-at sample-12 [2 5])
+  ;; => -28
+  )
+
+(defn heightmap-start [heightmap]
+  (first
+   (for [row (range (count heightmap))
+         col (range (count (first heightmap)))
+         :when (= \S (get-in heightmap [row col]))]
+     [row col])))
+
+(comment
+  (heightmap-start sample-12)
+  ;; => [0 0]
+  (heightmap-start (in-lines 12))
+  ;; => [20 0]
+  )
+
+(defn can-reach? [heightmap from to]
+  (and
+   (<= 0 (first to) (dec (count heightmap)))
+   (<= 0 (second to) (dec (count (first heightmap))))
+   (can-step? (get-in heightmap from Integer/MAX_VALUE)
+              (get-in heightmap to Integer/MAX_VALUE))))
+
+(comment
+  (can-reach? sample-12 [2 2] [2 3])
+  ;; => false
+  (can-reach? sample-12 [2 2] [2 1])
+  ;; => true
+
+  (int (get-in sample-12 [-1 0] Integer/MAX_VALUE))
+  ;; => 2147483647
+  )
+
+(def up [-1 0])
+(def down [1 0])
+(def right [0 1])
+(def left [0 -1])
+
+(defn heightmap-neighbors [heightmap from]
+  (let [[row col] from]
+    (sequence
+     (comp
+      (map (fn [[dr dc]]
+             [(+ row dr) (+ col dc)]))
+      (filter (fn [to]
+                (can-reach? heightmap from to)))
+      )
+     [up down left right])))
+
+(comment
+  (heightmap-neighbors sample-12 [2 2])
+  ;; => ([1 2] [3 2] [2 1])
+  (heightmap-neighbors sample-12 [0 0])
+  ;; => ([1 0] [0 1])
+  (can-reach? sample-12 [0 0] [-1 0])
+  ;; => false
+  )
+
+(defn next-paths [heightmap visited path]
+  (sequence
+   (comp
+    (remove visited)
+    (map (fn [neighbor] (conj path neighbor))))
+   (heightmap-neighbors heightmap (last path))))
+
+(comment
+  (next-paths sample-12 #{} [[0 0]])
+  ;; => ([[0 0] [1 0]] [[0 0] [0 1]])
+  (next-paths sample-12 #{[0 0]} [[0 0] [1 0]])
+  ;; => ([[0 0] [1 0] [2 0]] [[0 0] [1 0] [1 1]])
+  (next-paths sample-12 #{[0 0]} [[0 0] [0 1]])
+  ;; => ([[0 0] [0 1] [1 1]] [[0 0] [0 1] [0 2]])
+  )
+
+(defn find-end [heightmap]
+  (loop [visited #{}
+         paths [[(heightmap-start heightmap)]]]
+    (or
+     (first
+      (filter
+       (fn [path] (= \E (get-in heightmap (last path))))
+       paths))
+     (let [visited' (into visited (map last paths))]
+       (recur
+        visited'
+        (mapcat (fn [path] (next-paths heightmap visited' path)) paths)
+        )))))
+
+(comment
+  (find-end sample-12)
+  [[0 0] [1 0]
+   [1 1] [2 1]
+   [3 1] [3 2]
+   [4 2] [4 3] [4 4] [4 5] [4 6] [4 7]
+   [3 7] [2 7] [1 7] [0 7]
+   [0 6] [0 5] [0 4] [0 3]
+   [1 3] [2 3] [3 3]
+   [3 4] [3 5]
+   [2 5]]
+  (dec (count (find-end sample-12))))
+
+(comment
+  ;; Seems to take a while to run, let's check this again.
+  ;; Probably deadlocked somewhere.
+  (count (find-end (in-lines 12))))
+
 ;; Day 11
 
 (def sample-11 (string/split "Monkey 0:
@@ -603,50 +764,45 @@ L 5
 R 2" #"\n"))
 
 (defn rope-abuts? [head tail]
-(let [[hr hc] head
-      [tr tc] tail]
-  (and (<= (abs (- hr tr)) 1)
-       (<= (abs (- hc tc)) 1))))
-
-(def up [-1 0])
-(def down [1 0])
-(def right [0 1])
-(def left [0 -1])
+  (let [[hr hc] head
+        [tr tc] tail]
+    (and (<= (abs (- hr tr)) 1)
+         (<= (abs (- hc tc)) 1))))
 
 (defn clamp [minimum maximum]
-(fn [x]
-  (-> x
-      (max minimum)
-      (min maximum))))
+  (fn [x]
+    (-> x
+        (max minimum)
+        (min maximum))))
 
 (comment
-((clamp -1 1) -2)
-;; => -1
-((clamp -1 1) 2)
-;; => 1
-((clamp -1 1) 0)
-;; => 0
-)
+  ((clamp -1 1) -2)
+  ;; => -1
+  ((clamp -1 1) 2)
+  ;; => 1
+  ((clamp -1 1) 0)
+  ;; => 0
+  )
 
 (defn towards [head']
-(fn [tail]
-  (if (rope-abuts? head' tail)
-    tail
-    ;; chase head' by up to 1 row and up to 1 column
-    (let [[hr' hc'] head'
-          [tr tc] tail
-          dr ((clamp -1 1) (- hr' tr))
-          dc ((clamp -1 1) (- hc' tc))]
-      [(+ tr dr) (+ tc dc)]))))
+  (fn [tail]
+    (if (rope-abuts? head' tail)
+      tail
+      ;; chase head' by up to 1 row and up to 1 column
+      (let [[hr' hc'] head'
+            [tr tc] tail
+            dr ((clamp -1 1) (- hr' tr))
+            dc ((clamp -1 1) (- hc' tc))]
+        [(+ tr dr) (+ tc dc)]))))
 
 (defn ripple-rope
-"Follow the rope after moving, segment by segment."
-[rippled rip-tail [middle & to-ripple]]
-(let [rippled' (concat rippled [rip-tail])]
-  (if (empty? middle)
-    rippled'
-    (let [middle' ((towards rip-tail) middle)]
-      (recur rippled' middle' to-ripple)))))
+  "Follow the rope after moving, segment by segment."
+  [rippled rip-tail [middle & to-ripple]]
+  (let [rippled' (concat rippled [rip-tail])]
+    (if (empty? middle)
+      rippled'
+      (let [middle' ((towards rip-tail) middle)]
+        (recur rippled' middle' to-ripple)))))
 
 (comment
   (defn move-rope [direction]
