@@ -74,3 +74,77 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   ;; => 23750
   )
 
+;; Day 1
+(def sample-1 (string/split "1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet" #"\n"))
+(comment
+  (in-lines 1))
+
+(defn line-digits [line]
+  (filter (set (map str (range 10))) (string/split line #"")))
+
+(defn calibration-value [line]
+  (let [digits (line-digits line)]
+    (edn/read-string (apply str ((juxt first last) digits)))))
+
+(comment
+  (calibration-value (first sample-1)))
+
+(defn d1p1 [lines]
+  (reduce + (map calibration-value lines)))
+
+(comment
+  (d1p1 sample-1)
+  ;; => 142
+
+  (d1p1 (in-lines 1))
+  ;; => 56506
+  )
+
+(def digit-regex
+  #"(\d|one|two|three|four|five|six|seven|eight|nine)")
+
+(defn digits [line]
+  (map second ((juxt first last) (re-seq digit-regex line))))
+
+(defn replace-digits [line]
+  (-> line
+      (string/replace "one" "1")
+      (string/replace "two" "2")
+      (string/replace "three" "3")
+      (string/replace "four" "4")
+      (string/replace "five" "5")
+      (string/replace "six" "6")
+      (string/replace "seven" "7")
+      (string/replace "eight" "8")
+      (string/replace "nine" "9")
+      ))
+
+(defn string-calibration-value [line]
+  (edn/read-string (apply str (map replace-digits (digits line)))))
+
+(def sample-1-2 (string/split "two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen" #"\n"))
+
+(comment
+  (map string-calibration-value sample-1-2))
+;; => (29 83 13 24 42 14 76)
+
+(defn d1p2 [lines]
+  (reduce + (map string-calibration-value lines)))
+
+(comment
+  (d1p2 sample-1-2)
+  ;; => 281
+
+  (d1p2 (in-lines 1))
+  ;; => 56001
+  )
+
