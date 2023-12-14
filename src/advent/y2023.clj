@@ -53,10 +53,12 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   ;; => #{86 48 31 6 17 9 83 53}
   )
 
+(defn winning-numbers-you-have [card-line]
+  (count (sets/intersection (winning-numbers card-line)
+                            (numbers-you-have card-line))))
+
 (defn card-points [card-line]
-  (let [intersection (sets/intersection (winning-numbers card-line)
-                                        (numbers-you-have card-line))
-        match-count (count intersection)]
+  (let [match-count (winning-numbers-you-have card-line)]
     (if (zero? match-count)
       0
       (int (Math/pow 2 (dec match-count))))))
