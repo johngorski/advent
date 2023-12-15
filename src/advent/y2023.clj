@@ -74,6 +74,94 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   ;; => 23750
   )
 
+;; Day 3
+
+
+
+;; Day 2
+
+(defn game-id [line]
+  (-> line
+      (string/split #":")
+      first
+      (string/split #" ")
+      second
+      edn/read-string))
+
+(comment
+  (game-id "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue")
+  ;; => 2
+  )
+
+(defn game-handful [handful-str]
+  (into {}
+        (comp
+         (map string/trim)
+         (map (fn [entry] (string/split entry #"\s+")))
+         (map (fn [[amount color]] [color (edn/read-string amount)]))
+         )
+        (string/split handful-str #",")))
+
+(comment
+  (game-handful " 3 green, 4 blue, 1 red")
+  ;; => {"green" 3, "blue" 4, "red" 1}
+  )
+
+(defn game-handfuls [line]
+  (map game-handful
+       (-> line
+           (string/split #":")
+           second
+           (string/split #";")
+           )))
+
+(comment
+  (game-handfuls "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue")
+  ({"blue" 1, "green" 2}
+   {"green" 3, "blue" 4, "red" 1}
+   {"green" 1, "blue" 1})
+  )
+
+(defn game-checker [bag]
+  (fn [handful]
+    (->> (seq handful)
+         (map (fn [[color handful-cubes]]
+                (<= handful-cubes (get bag color 0))
+                ))
+         (reduce #(and %1 %2))
+         )))
+
+(def sample-2 (string/split "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green" #"\n"))
+
+(defn game-plausible? [line]
+  (every? (fn [handful]
+            ((game-checker {"red" 12, "green" 13, "blue" 14}) handful))
+          (game-handfuls line)))
+
+(comment)
+(filter game-plausible? sample-2)
+("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
+ "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue"
+ "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green")
+
+(defn d2p1 [lines]
+  (->> lines
+       (filter game-plausible?)
+       (map game-id)
+       (reduce +)
+       ))
+
+(comment
+  (d2p1 sample-2)
+  ;; => 8
+  (d2p1 (in-lines 2))
+  ;; => 2278
+  )
+
 ;; Day 1
 (def sample-1 (string/split "1abc2
 pqr3stu8vwx
@@ -146,5 +234,6 @@ zoneight234
 
   (d1p2 (in-lines 1))
   ;; => 56001
+  ;; The website reports this is too low.
   )
 
