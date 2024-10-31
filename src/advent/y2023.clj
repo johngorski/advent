@@ -76,7 +76,75 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
 
 ;; Day 3
 
+(def sample-3 (string/split "467..114..
+...*......
+..35..633.
+......#...
+617*......
+.....+.58.
+..592.....
+......755.
+...$.*....
+.664.598.." #"\n"))
 
+;; get number locations (row + column range)
+;; check adjacent box for non-period/non-number symbols
+
+;; scan through each cell and record number locations
+
+(def digits (into #{} (seq "1234567890")))
+
+(defn number-partitions [line]
+  (partition-by #(not (not (digits %))) line))
+
+(comment
+  (number-partitions "467..114..")
+  ((\4 \6 \7) (\. \.) (\1 \1 \4) (\. \.)))
+
+(defn digit-partition? [part]
+  (digits (first part)))
+
+(defn partition-columns [acc idx partitions]
+  (let [[first-partition & remaining-partitions] partitions
+        next-idx (+ idx (count first-partition))]
+    (cond
+      (empty? partitions)
+      acc
+
+      (digit-partition? first-partition)
+      (recur (conj acc [idx next-idx]) next-idx remaining-partitions)
+
+      :else
+      (recur acc next-idx remaining-partitions)
+      )))
+
+(defn number-columns [line]
+  (partition-columns [] 0 (number-partitions line)))
+
+(comment
+  (number-columns "467..114..")
+  [[0 3] [5 8]])
+
+(defn number-locations [lines]
+  (apply concat
+         (map-indexed
+          (fn [row line]
+            (map (fn [cols]
+                   [row cols])
+                 (number-columns line)))
+          lines)))
+
+(comment
+  (number-locations sample-3)
+  ([0 [0 3]] [0 [5 8]]
+   [2 [2 4]] [2 [6 9]]
+   [4 [0 3]]
+   [5 [7 9]]
+   [6 [2 5]]
+   [7 [6 9]]
+   [9 [1 4]] [9 [5 8]]))
+
+;; HERE: number locations, next step is to check each for adjacent symbols
 
 ;; Day 2
 
