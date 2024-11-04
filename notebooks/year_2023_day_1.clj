@@ -34,4 +34,4 @@ y/sample-1-2
 
 (re-find y/digit-regex "sevenine")
 
-(re-matches y/digit-regex "sevenine")
+(re-groups y/digit-regex "sevenine")

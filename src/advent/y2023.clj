@@ -123,7 +123,9 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
 
 (comment
   (number-columns "467..114..")
-  [[0 3] [5 8]])
+  [[0 3] [5 8]]
+  (number-columns "..467..114..")
+  ())
 
 (defn number-locations [lines]
   (apply concat
@@ -145,6 +147,36 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
    [9 [1 4]] [9 [5 8]]))
 
 ;; HERE: number locations, next step is to check each for adjacent symbols
+(defn surrounding-number [field number-location]
+  (let [min-row 0
+        max-row (count field)
+        min-col 0
+        max-col (count (first field))
+
+        [number-row [number-start-col number-end-col]] number-location
+        start-row (max min-row (dec number-row))
+        end-row (min (inc number-row) max-row)
+        start-col (max min-col (dec number-start-col))
+        end-col (min (inc number-end-col) max-col)]
+
+    (map (fn [row]
+           (subs row start-col end-col))
+         (subvec field start-row (inc end-row)))))
+
+(comment
+  (surrounding-number sample-3 (first (number-locations sample-3)))
+  #_("467."
+     "...*")
+
+  (surrounding-number sample-3 (second (number-locations sample-3)))
+  #_(".114."
+     ".....")
+
+  (surrounding-number sample-3 (nth (number-locations sample-3) 2))
+  #_("..*."
+     ".35."
+     "...."))
+
 
 ;; Day 2
 
