@@ -1,0 +1,24 @@
+{:paths ["src" "resources"]
+ :deps
+ {org.clojure/clojure {:mvn/version "1.11.1"}
+  instaparse/instaparse {:mvn/version "1.4.10"}
+  io.github.nextjournal/clerk {:mvn/version "0.14.919"}
+  trie/trie {:mvn/version "0.1.1"}}
+
+ :aliases
+ {:repl
+  {:main-opts ["-m" "nrepl.cmdline"]
+   :extra-deps
+   {nrepl/nrepl {:mvn/version "1.3.0"}
+    cider/piggieback {:mvn/version "0.4.2"}}}
+
+  :test
+  {:main-opts ["-m" "kaocha.runner"]
+   :extra-paths ["test"]
+   :extra-deps
+   {lambdaisland/kaocha {:mvn/version "1.91.1392"}}}
+
+  :notebook
+  {:main-opts ["-m" "advent.notebook"]
+   :extra-paths ["notebooks"]}
+  }}
