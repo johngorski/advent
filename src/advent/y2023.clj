@@ -1,5 +1,6 @@
 (ns advent.y2023
   (:require
+   [advent.puzzle :as puzzle]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.set :as sets]
@@ -11,8 +12,7 @@
   (map edn/read-string
        (string/split-lines (slurp (io/resource (str "2023/" day ".txt"))))))
 
-(defn in-lines [day]
-  (string/split-lines (slurp (io/resource (str "2023/" day ".txt")))))
+(puzzle/in-lines 2023 1)
 
 ;; Day 4
 
@@ -70,7 +70,7 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   ;; => (8 2 2 1 0 0)
   (reduce + (map card-points sample-4))
   ;; => 13
-  (reduce + (map card-points (in-lines 4)))
+  (reduce + (map card-points (puzzle/in-lines 2023 4)))
   ;; => 23750
   )
 
@@ -210,11 +210,11 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green" #"\n"))
             ((game-checker {"red" 12, "green" 13, "blue" 14}) handful))
           (game-handfuls line)))
 
-(comment)
-(filter game-plausible? sample-2)
-("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
- "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue"
- "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green")
+(comment
+  (filter game-plausible? sample-2)
+  ("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
+   "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue"
+   "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"))
 
 (defn d2p1 [lines]
   (->> lines
@@ -226,9 +226,34 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green" #"\n"))
 (comment
   (d2p1 sample-2)
   ;; => 8
-  (d2p1 (in-lines 2))
+  (d2p1 (puzzle/in-lines 2023 2))
   ;; => 2278
   )
+
+(defn fewest-cubes [handfuls]
+  (apply merge-with max handfuls))
+
+(comment
+  (fewest-cubes (game-handfuls (first sample-2)))
+  ;; => {"blue" 6, "red" 4, "green" 2}
+  ())
+
+(defn game-power [handfuls]
+  (reduce * (vals (fewest-cubes handfuls))))
+
+(comment
+  (game-power (game-handfuls (first sample-2)))
+  ;; => 48
+  ())
+
+(map (comp game-power game-handfuls) sample-2)
+
+(def d2p2
+  (reduce +
+          (puzzle/in-lines
+           (map (comp game-power game-handfuls))
+           2023 2)))
+;; => 67953
 
 ;; Day 1
 (def sample-1 (string/split "1abc2
@@ -236,7 +261,7 @@ pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet" #"\n"))
 (comment
-  (in-lines 1))
+  (puzzle/in-lines 2023 1))
 
 (defn line-digits [line]
   (filter (set (map str (range 10))) (string/split line #"")))
@@ -255,7 +280,7 @@ treb7uchet" #"\n"))
   (d1p1 sample-1)
   ;; => 142
 
-  (d1p1 (in-lines 1))
+  (d1p1 (puzzle/in-lines 2023 1))
   ;; => 56506
   )
 
@@ -264,6 +289,11 @@ treb7uchet" #"\n"))
 
 (defn digits [line]
   (map second ((juxt first last) (re-seq digit-regex line))))
+
+(comment
+  (digits "pqr3stu8vwx")
+  ;; => ("3" "8")
+  ())
 
 (defn replace-digits [line]
   (-> line
@@ -281,6 +311,14 @@ treb7uchet" #"\n"))
 (defn string-calibration-value [line]
   (edn/read-string (apply str (map replace-digits (digits line)))))
 
+(string-calibration-value "7pqrstsixteen")
+;; => 76
+
+(defn spelled-calibration-value [line]
+   (calibration-value (replace-digits line)))
+
+(spelled-calibration-value "7pqrstsixteen")
+
 (def sample-1-2 (string/split "two1nine
 eightwothree
 abcone2threexyz
@@ -296,12 +334,40 @@ zoneight234
 (defn d1p2 [lines]
   (reduce + (map string-calibration-value lines)))
 
+(defn day1part2 [lines]
+  (reduce + (map spelled-calibration-value lines)))
+
 (comment
   (d1p2 sample-1-2)
   ;; => 281
+  (day1part2 sample-1-2)
 
-  (d1p2 (in-lines 1))
+  (d1p2 sample-1)
+
+  (puzzle/in-lines (take 5) 2023 1)
+
+  (d1p2 (puzzle/in-lines 2023 1))
   ;; => 56001
   ;; The website reports this is too low.
   )
+
+;; This is looking like a surprisingly bespoke bit of Clojure/Java.
+(def reddit-cases
+  ["one"
+   "two"
+   "three"
+   "four"
+   "five"
+   "six"
+   "seven"
+   "eight"
+   "nine"
+   "oneight"
+   "twone"
+   "threeight"
+   "fiveight"
+   "sevenine"
+   "eightwo"
+   "eighthree"
+   "nineight"])
 
