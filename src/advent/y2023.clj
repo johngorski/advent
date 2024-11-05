@@ -74,6 +74,63 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   ;; => 23750
   )
 
+;; day 4 part 2
+;; plan of attack: roll back-to-front in number of winning cards.
+;; becomes a dynamic programming solution. Numbers will get big fast.
+
+(defn card-number [card-line]
+  (-> card-line
+      (string/split #":")
+      first
+      (string/split #"\s+")
+      second
+      edn/read-string))
+
+(comment
+  (map card-number sample-4)
+  ;; => (1 2 3 4 5 6)
+  ())
+
+(comment
+  (mapv winning-numbers-you-have sample-4)
+  [4 2 2 1 0 0])
+
+(defn cards-won
+  ([card-lines]
+   (let [winning-number-vec (mapv winning-numbers-you-have card-lines)
+         idx (dec (count winning-number-vec))
+         acc {}]
+     (cards-won winning-number-vec idx acc)))
+  ([winning-number-vec idx acc]
+   (def *dbg* {:winning-number-vec winning-number-vec :idx idx :acc acc})
+   (if (< idx 0)
+     acc
+     (let [num-copies-won (get winning-number-vec idx)
+           idx-copies-won (range (inc idx) (+ (inc idx) num-copies-won))
+           total-cards-won (reduce +
+                                   1
+                                   (map (fn [i]
+                                          (get acc i 0))
+                                        idx-copies-won))]
+       (recur winning-number-vec (dec idx) (assoc acc idx total-cards-won))))))
+
+(comment
+  (cards-won sample-4)
+  {5 1,
+   4 1,
+   3 2,
+   2 4,
+   1 7,
+   0 15}
+
+  (reduce + (map second (seq (cards-won sample-4))))
+  ;; => 30
+
+  (reduce + (map second (seq (cards-won (puzzle/in-lines 2023 4)))))
+  ;; => 13261850
+  ())
+
+
 ;; Day 3
 
 (def sample-3 (string/split "467..114..
