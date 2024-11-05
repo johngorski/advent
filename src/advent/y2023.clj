@@ -12,7 +12,7 @@
   (map edn/read-string
        (string/split-lines (slurp (io/resource (str "2023/" day ".txt"))))))
 
-(puzzle/in-lines 2023 1)
+#_(puzzle/in-lines 2023 1)
 
 ;; Day 4
 
