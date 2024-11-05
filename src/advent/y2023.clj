@@ -155,13 +155,13 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
 
         [number-row [number-start-col number-end-col]] number-location
         start-row (max min-row (dec number-row))
-        end-row (min (inc number-row) max-row)
+        end-row (min (+ 2 number-row) max-row)
         start-col (max min-col (dec number-start-col))
         end-col (min (inc number-end-col) max-col)]
 
     (map (fn [row]
            (subs row start-col end-col))
-         (subvec field start-row (inc end-row)))))
+         (subvec field start-row end-row))))
 
 (comment
   (surrounding-number sample-3 (first (number-locations sample-3)))
@@ -176,6 +176,122 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11" #"\n"))
   #_("..*."
      ".35."
      "...."))
+
+(defn number-at [field number-location]
+  (let [[number-row [number-start-col number-end-col]] number-location]
+    (edn/read-string (-> field (get number-row) (subs number-start-col number-end-col)))))
+
+(comment
+  (number-at sample-3 (nth (number-locations sample-3) 0))
+  ;; => 467
+  (number-at sample-3 (nth (number-locations sample-3) 1))
+  ;; => 114
+  (number-at sample-3 (nth (number-locations sample-3) 2))
+  ;; => 35
+  ())
+
+(defn symbols-in [subfield]
+  (sets/difference
+   (into #{} (mapcat seq subfield))
+   (into #{} (seq ".1234567890"))))
+
+(symbols-in ["ab9*" "+d4e"])
+
+(defn part-number-sum [field]
+  (reduce
+   +
+   (sequence
+    (comp
+     (remove (fn [loc]
+               (empty? (symbols-in (surrounding-number field loc)))))
+     (map (fn [loc]
+            (number-at field loc))))
+    (number-locations field))))
+
+(comment
+  (part-number-sum sample-3)
+  ;; => 4361
+
+  (part-number-sum (puzzle/in-lines 2023 3))
+  ;; => 540131
+  ())
+
+;; day 3 part 2
+;; plan of attack: get asterisks
+;; get labels on asterisks
+;;  - actually easier to get which ones are gears first
+;; filter asterisks with exactly two labels
+;;  - and expand to labels then
+;; and multiply
+;; and sum
+
+;; alternative:
+;; - grab all the numbers/labels
+;; - get all the surrounding asterisk locations
+;; - combine based on asterisk locations
+
+(defn surrounding-indices [field number-loc]
+  (let [[row [col0 num-col-stop]] number-loc
+
+        max-idx (fn [arr] (dec (count arr)))
+
+        max-row-idx (max-idx field)
+        max-col-idx (max-idx (first field))
+
+        first-row-idx (max 0 (dec row))
+        last-row-idx (min max-row-idx (inc row))
+
+        first-col-idx (max 0 (dec col0))
+        last-col-idx (min max-col-idx num-col-stop)
+        ]
+    (for [r (range first-row-idx (inc last-row-idx))
+          c (range first-col-idx (inc last-col-idx))
+          :when (or (not= row r)
+                    (= c first-col-idx)
+                    (= c last-col-idx))]
+      [r c]
+      )))
+
+
+(defn asterisks-around [field number-loc]
+  (sequence
+   (filter (fn [idx]
+             (= \* (get-in field idx))))
+   (surrounding-indices field number-loc)))
+
+(comment
+  (mapcat (fn [loc]
+            (asterisks-around sample-3 loc))
+          (number-locations sample-3))
+  #_([1 3] [1 3] [4 3] [8 5] [8 5]))
+
+(defn gears [field]
+  (let [number-locs (number-locations field)
+        asterisks (mapcat (fn [number-loc]
+                            (let [number (number-at field number-loc)
+                                  asterisk-locs (asterisks-around field number-loc)]
+                              (map (fn [asterisk-loc] {asterisk-loc [number]}) asterisk-locs)))
+                          number-locs)
+        gear-pairs (apply merge-with concat asterisks)]
+    (into {} (filter (fn [pair] (= 2 (count (second pair))))) (seq gear-pairs))
+    #_(seq gear-pairs)))
+
+(comment
+  (gears sample-3)
+  ;; => {[1 3] (467 35), [8 5] (755 598)}
+  ())
+
+(comment
+  (reduce +
+          (map (fn [factors] (apply * factors)) (vals (gears sample-3))))
+  ;; => 467835
+  ())
+
+(comment
+  (reduce +
+          (map (fn [factors] (apply * factors)) (vals (gears (puzzle/in-lines 2023 3)))))
+  ;; => 86879020
+  ())
 
 
 ;; Day 2
@@ -319,7 +435,7 @@ treb7uchet" #"\n"))
 (def digit-regex
   #"(\d|one|two|three|four|five|six|seven|eight|nine)")
 
-(defn digits [line]
+#_(defn digits [line]
   (map second ((juxt first last) (re-seq digit-regex line))))
 
 (comment
