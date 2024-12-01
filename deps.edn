@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
  :deps
- {org.clojure/clojure {:mvn/version "1.11.1"}
-  instaparse/instaparse {:mvn/version "1.4.10"}
+ {org.clojure/clojure {:mvn/version "1.12.0"}
+  instaparse/instaparse {:mvn/version "1.5.0"}
   io.github.nextjournal/clerk {:mvn/version "0.14.919"}
   trie/trie {:mvn/version "0.1.1"}}
 

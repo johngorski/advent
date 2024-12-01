@@ -14,6 +14,289 @@
 
 #_(puzzle/in-lines 2023 1)
 
+;; Day 6
+;; Really just needs a spreadsheet.
+;; https://docs.google.com/spreadsheets/d/10laazhPV3pZCO024xfAAUlbM_soDt15CeaBeiidhhlg/edit?gid=0#gid=0
+
+;; Day 5
+
+(def sample-5 "seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4")
+
+(def ag-mapper
+  (insta/parser
+   (string/join
+    "\n"
+    [
+     "MAPPERS = SEEDS (<'\n\n'> MAPPER)*"
+     "SEEDS = <'seeds: '> NUMBERS"
+     "MAPPER = a2b (<'\n'> NUMBERS)*"
+     "a2b = type <'-to-'> type <' map:'>"
+     "<type> = #'\\w+'"
+     "NUMBERS = NUMBER (<WS> NUMBER)*"
+     "<NUMBER> = #'\\d+'"
+     "WS = #'\\s+'"
+     ])))
+;; => #'advent.y2023/ag-mapper
+;; #_(insta/parse ag-mapper "12 34 5")
+;; (insta/parse ag-mapper sample-5)
+(comment
+  (insta/parse ag-mapper "seeds: 1 2 3")
+  [:MAPPERS [:SEEDS [:NUMBERS "1" "2" "3"]]]
+
+  (insta/parse ag-mapper "seeds: 1 2 3\n\na-to-b map:\n4 5 6")
+  [:MAPPERS [:SEEDS [:NUMBERS "1" "2" "3"]] [:MAPPER [:a2b [:type "a"] [:type "b"]] [:NUMBERS "4" "5" "6"]]]
+
+  (insta/parse ag-mapper "seeds: 1 2 3\n\na-to-b map:\n4 5 6\n\nb-to-c map:\n7 8 9")
+  [:MAPPERS
+   [:SEEDS [:NUMBERS "1" "2" "3"]]
+   [:MAPPER [:a2b [:type "a"] [:type "b"]] [:NUMBERS "4" "5" "6"]]
+   [:MAPPER [:a2b [:type "b"] [:type "c"]] [:NUMBERS "7" "8" "9"]]])
+
+(insta/parse ag-mapper "seeds: 1 2 3\n\na-to-b map:\n4 5 6\n10 11 12\n\nb-to-c map:\n7 8 9")
+[:MAPPERS
+ [:SEEDS [:NUMBERS "1" "2" "3"]]
+ [:MAPPER [:a2b "a" "b"] [:NUMBERS "4" "5" "6"] [:NUMBERS "10" "11" "12"]]
+ [:MAPPER [:a2b "b" "c"] [:NUMBERS "7" "8" "9"]]]
+
+(insta/parse ag-mapper "seeds: 1 2 3
+
+a-to-bc map:
+4 5 6
+10 11 12
+
+bc-to-c map:
+7 8 9")
+[:MAPPERS
+ [:SEEDS [:NUMBERS "1" "2" "3"]]
+ [:MAPPER [:a2b "a" "bc"] [:NUMBERS "4" "5" "6"] [:NUMBERS "10" "11" "12"]]
+ [:MAPPER [:a2b "bc" "c"] [:NUMBERS "7" "8" "9"]]]
+
+(insta/parse ag-mapper sample-5)
+[:MAPPERS
+ [:SEEDS [:NUMBERS "79" "14" "55" "13"]]
+ [:MAPPER [:a2b "seed" "soil"] [:NUMBERS "50" "98" "2"] [:NUMBERS "52" "50" "48"]]
+ [:MAPPER [:a2b "soil" "fertilizer"] [:NUMBERS "0" "15" "37"] [:NUMBERS "37" "52" "2"] [:NUMBERS "39" "0" "15"]]
+ [:MAPPER [:a2b "fertilizer" "water"] [:NUMBERS "49" "53" "8"] [:NUMBERS "0" "11" "42"] [:NUMBERS "42" "0" "7"] [:NUMBERS "57" "7" "4"]]
+ [:MAPPER [:a2b "water" "light"] [:NUMBERS "88" "18" "7"] [:NUMBERS "18" "25" "70"]]
+ [:MAPPER [:a2b "light" "temperature"] [:NUMBERS "45" "77" "23"] [:NUMBERS "81" "45" "19"] [:NUMBERS "68" "64" "13"]]
+ [:MAPPER [:a2b "temperature" "humidity"] [:NUMBERS "0" "69" "1"] [:NUMBERS "1" "0" "69"]]
+ [:MAPPER [:a2b "humidity" "location"] [:NUMBERS "60" "56" "37"] [:NUMBERS "56" "93" "4"]]]
+
+(defn range-data [[dest-start src-start length]]
+  {:dest-start dest-start
+   :src-start src-start
+   :length length})
+
+(defn range-pred [{:keys [src-start length]}]
+  (fn [n]
+    (and (<= src-start n)
+         (< n (+ length src-start)))))
+
+(defn range-translate [{:keys [src-start dest-start]}]
+  (let [delta (- dest-start src-start)]
+    (fn [n] (+ delta n))))
+
+(comment
+  ((range-translate {:src-start 98 :dest-start 50}) 99)
+  ;; => 51
+  ())
+
+(defn add-mapper [ms mapper]
+  (let [{:keys [from to ranges]} mapper]
+    (update-in ms
+               [from to]
+               (fn [rs]
+                 (if rs
+                   (concat rs ranges)
+                   ranges)))))
+
+(comment
+  (add-mapper {} '{:from "fertilizer"
+                   :to "water"
+                   :ranges ({:dest-start 49, :src-start 53, :length 8}
+                            {:dest-start 0, :src-start 11, :length 42}
+                            {:dest-start 42, :src-start 0, :length 7}
+                            {:dest-start 57, :src-start 7, :length 4})}))
+
+(add-mapper {"fertilizer" {"water" [1 2] "oil" [3 4]}}
+            {:from "fertilizer"
+             :to "water"
+             :ranges '({:dest-start 49, :src-start 53, :length 8}
+                       {:dest-start 0, :src-start 11, :length 42}
+                       {:dest-start 42, :src-start 0, :length 7}
+                       {:dest-start 57, :src-start 7, :length 4})})
+'{"fertilizer" {"water" (1 2 {:dest-start 49, :src-start 53, :length 8} {:dest-start 0, :src-start 11, :length 42} {:dest-start 42, :src-start 0, :length 7} {:dest-start 57, :src-start 7, :length 4}),
+               "oil" [3 4]}}
+
+(def ag-transformer
+  {:NUMBERS (fn [& num-strs] (map edn/read-string num-strs))
+   :a2b (fn [from to] {:from from, :to to})
+   :SEEDS identity
+   :MAPPER (fn [{:keys [from to] :as a2b} & num-lists]
+             #_(assoc a2b :ranges (map range-data num-lists))
+             {from {to (map range-data num-lists)}})
+   :MAPPERS (fn [seeds & mappers]
+              {:seeds seeds
+               :mappers (apply merge mappers) #_(mappers) #_(reduce {} add-mapper mappers)})
+   })
+
+(comment
+  (assoc-in {} [:a :b] 0)
+  ;; => {:a {:b 0}}
+  (update-in {} [:a :b] (fn [n] (if n (inc n) 0)))
+  ;; => {:a {:b 0}}
+  (update-in {:a {:b 0}} [:a :b] (fn [n] (if n (inc n) 0)))
+  ;; => {:a {:b 1}}
+  ())
+
+(->> sample-5
+     (insta/parse ag-mapper)
+     (insta/transform ag-transformer))
+
+#_{:seeds (79 14 55 13),
+   :mappers {"seed" {"soil" ({:dest-start 50, :src-start 98, :length 2}
+                             {:dest-start 52, :src-start 50, :length 48})},
+             "soil" {"fertilizer" ({:dest-start 0, :src-start 15, :length 37}
+                                   {:dest-start 37, :src-start 52, :length 2}
+                                   {:dest-start 39, :src-start 0, :length 15})},
+             "fertilizer" {"water" ({:dest-start 49, :src-start 53, :length 8}
+                                    {:dest-start 0, :src-start 11, :length 42}
+                                    {:dest-start 42, :src-start 0, :length 7}
+                                    {:dest-start 57, :src-start 7, :length 4})},
+             "water" {"light" ({:dest-start 88, :src-start 18, :length 7}
+                               {:dest-start 18, :src-start 25, :length 70})},
+             "light" {"temperature" ({:dest-start 45, :src-start 77, :length 23}
+                                     {:dest-start 81, :src-start 45, :length 19}
+                                     {:dest-start 68, :src-start 64, :length 13})},
+             "temperature" {"humidity" ({:dest-start 0, :src-start 69, :length 1}
+                                        {:dest-start 1, :src-start 0, :length 69})},
+             "humidity" {"location" ({:dest-start 60, :src-start 56, :length 37}
+                                     {:dest-start 56, :src-start 93, :length 4})}}}
+
+(defn converter [ranges]
+  (fn [n]
+    (loop [[r & rs] ranges]
+      (if (not r)
+        n
+        (if ((range-pred r) n)
+          ((range-translate r) n)
+          (recur rs)
+          )))))
+
+(comment
+  (map
+   (converter '({:dest-start 50, :src-start 98, :length 2}
+                {:dest-start 52, :src-start 50, :length 48}))
+   '(79 14 55 13))
+  ;; => (81 14 57 13)
+  ())
+
+
+(defn ag-parse [source]
+  (->> source
+       (insta/parse ag-mapper)
+       (insta/transform ag-transformer)))
+
+#_(ag-parse sample-5)
+
+(defn next-category [ag-data current-category]
+  (-> ag-data (get-in [:mappers current-category]) keys first))
+
+(comment
+  (next-category (ag-parse sample-5) "seed")
+  ;; => "soil"
+  (next-category (ag-parse sample-5) "soil")
+  ;; => "fertilizer"
+  (next-category (ag-parse sample-5) "zzz")
+  ;; => nil
+  ())
+
+(defn ag-converter-seq
+  "Sequence from start type until it runs off the end."
+  [ag-data start]
+  (reify clojure.lang.ISeq
+    (first [this]
+      start)
+    (next [this]
+      (when-let [thence (next-category ag-data start)]
+        (ag-converter-seq ag-data thence)))
+    (more [this]
+      (or (next this) ()))
+    (seq [this]
+      this)))
+
+(comment
+  #_(take 30 (ag-converter-seq (ag-parse sample-5) "seed"))
+  (take 3 (ag-converter-seq (ag-parse sample-5) "seed"))
+  ;; => ("seed" "soil" "fertilizer")
+  (take 3 (ag-converter-seq (ag-parse sample-5) "fertilizer"))
+  ;; => ("fertilizer" "water" "light")
+  (take 3 (ag-converter-seq (ag-parse sample-5) "zzz"))
+  ;; => ("zzz") ;; eh, close enough for now
+  ())
+
+(defn ag-converter
+  "ag-data is the result of parsing mapper source via (ag-parse).
+  from is the starting type (e.g. \"seed\", )"
+  ([ag-data]
+   (ag-converter ag-data "seed" "location"))
+  ([ag-data from to]
+   (let [category-conversions (partition 2 1 (ag-converter-seq ag-data from))
+         conversion-ranges (map (fn [conversion]
+                                  (get-in (concat [:mappers] conversion) ag-data))
+                                category-conversions)
+         conversion-fns (map converter conversion-ranges)]
+     #_(reduce (fn [conv f]
+               (comp f conv))
+             conversion-fns)
+     ;; category-conversions
+     conversion-ranges
+     )))
+
+#_((comp inc #(* % %)) 4)
+;; => 17
+
+(get-in (ag-parse sample-5) (concat [:mappers] ["seed" "soil"]))
+
+(ag-converter (ag-parse sample-5))
+;; => "location"
+((ag-converter (ag-parse sample-5)) 79)
+
+
+#_(puzzle/in 2023 5)
+
 ;; Day 4
 
 (def sample-4 (string/split "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
