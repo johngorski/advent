@@ -5,6 +5,13 @@
    [clojure.test :refer :all]))
 
 
+(deftest day-2
+  (def sample-2
+    "")
+  (testing ""
+    (is (= ))))
+
+
 (deftest day-1
   (def sample-1
     "3   4
