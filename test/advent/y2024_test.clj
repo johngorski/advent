@@ -13,16 +13,19 @@
 1 3 2 4 5
 8 6 4 4 1
 1 3 6 7 9"))
-  (report-diffs [7 6 4 2 1])
-  (sequence
-   (comp
-    (map parse-report)
-    (map report-diffs))
-   sample-2-lines)
-
-  (testing "solutions"
+  (comment
+    (report-diffs [7 6 4 2 1])
+    (sequence
+     (comp
+      (map parse-report)
+      (map report-diffs))
+     sample-2-lines))
+  (testing "part 1 solutions"
     (is (= 2 (solve-day-2-part-1 sample-2-lines)))
-    (is (= 236 (solve-day-2-part-1 (puzzle/in-lines 2024 2))))))
+    (is (= 236 (solve-day-2-part-1 (puzzle/in-lines 2024 2)))))
+  (testing "part 2 solutions"
+    (is (= 4 (solve-day-2-part-2 sample-2-lines)))
+    (is (= 308 (solve-day-2-part-2 (puzzle/in-lines 2024 2))))))
 
 
 (deftest day-1

@@ -12,7 +12,7 @@
 ;; Day 2
 
 (defn parse-report [line]
-  (map edn/read-string (string/split line #"\s+")))
+  (mapv edn/read-string (string/split line #"\s+")))
 
 (defn all-increasing? [report]
   (apply < report))
@@ -36,6 +36,25 @@
              (comp
               (map parse-report)
               (map #(if (safe-report? %) 1 0)))
+             lines)))
+
+(defn dampened-reports [report]
+  (let [len (count report)]
+    (map (fn [idx]
+           (let [
+                 front (subvec report 0 idx)
+                 back (subvec report (inc idx) len)]
+             (concat front back)))
+         (range len))))
+
+(defn safe-under-dampening? [report]
+  (some safe-report? (dampened-reports report)))
+
+(defn solve-day-2-part-2 [lines]
+  (reduce + (sequence
+             (comp
+              (map parse-report)
+              (map #(if (safe-under-dampening? %) 1 0)))
              lines)))
 
 ;; Day 1
