@@ -9,6 +9,35 @@
    [instaparse.core :as insta]))
 
 
+;; Day 2
+
+(defn parse-report [line]
+  (map edn/read-string (string/split line #"\s+")))
+
+(defn all-increasing? [report]
+  (apply < report))
+
+(defn all-decreasing? [report]
+  (apply > report))
+
+(defn level-diffs [report]
+  (map #(apply - %) (partition 2 1 report)))
+
+(defn safe-diffs? [report]
+  (every? #(<= 1 % 3) (map abs (level-diffs report))))
+
+(defn safe-report? [report]
+  (and (or (all-increasing? report)
+           (all-decreasing? report))
+       (safe-diffs? report)))
+
+(defn solve-day-2-part-1 [lines]
+  (reduce + (sequence
+             (comp
+              (map parse-report)
+              (map #(if (safe-report? %) 1 0)))
+             lines)))
+
 ;; Day 1
 
 (defn line-pair [line]

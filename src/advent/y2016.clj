@@ -34,3 +34,30 @@
 ;; [ 1  0][y]
 (defn turn-left [[x y]]
   [(- y) x])
+
+
+(def v+ (partial mapv +))
+(def v- (partial mapv -))
+
+
+(defn forward [position direction]
+  (v+ position direction))
+
+
+(defn new-guy []
+  {:position [0 0]
+   :direction north})
+
+(defn turn-guy-right [guy]
+  (update guy :direction turn-right))
+
+(defn turn-guy-left [guy]
+  (update guy :direction turn-left))
+
+(defn move-guy-forward [{:keys [direction] :as guy}]
+  (update guy :position (fn [position] (forward position direction))))
+
+
+(defn manhattan-distance [a b]
+  (reduce + (map abs (v- a b))))
+

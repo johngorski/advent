@@ -6,10 +6,23 @@
 
 
 (deftest day-2
-  (def sample-2
-    "")
-  (testing ""
-    (is (= ))))
+  (def sample-2-lines
+    (puzzle/sample-lines "7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9"))
+  (report-diffs [7 6 4 2 1])
+  (sequence
+   (comp
+    (map parse-report)
+    (map report-diffs))
+   sample-2-lines)
+
+  (testing "solutions"
+    (is (= 2 (solve-day-2-part-1 sample-2-lines)))
+    (is (= 236 (solve-day-2-part-1 (puzzle/in-lines 2024 2))))))
 
 
 (deftest day-1
