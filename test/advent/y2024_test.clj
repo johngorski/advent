@@ -4,6 +4,24 @@
    [advent.y2024 :refer :all]
    [clojure.test :refer :all]))
 
+(deftest day-3
+  (def sample-3
+    "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))")
+  (comment)
+  (testing "multiply single"
+    (is (= 2024 (mul 44 46))))
+  (testing "extract mul"
+    (is (= [:mul 44 46]
+           (extract-mul "mul(44,46)"))))
+  (testing "find muls"
+    (is (= (get-muls sample-3)
+           ["mul(2,4)" "mul(5,5)" "mul(11,8)" "mul(8,5)"])))
+  (testing "part 1 solutions"
+    (is (= 161 (solve-day-3-part-1 sample-3)))
+    (is (= 184511516 (solve-day-3-part-1 (puzzle/in 2024 3)))))
+  #_(testing "part 2 solutions"
+    (is (= 4 (solve-day-3-part-2 sample-3-lines)))
+    (is (= 308 (solve-day-3-part-2 (puzzle/in-lines 2024 3))))))
 
 (deftest day-2
   (def sample-2-lines

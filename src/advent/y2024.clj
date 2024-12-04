@@ -9,6 +9,33 @@
    [instaparse.core :as insta]))
 
 
+;; Day 3
+
+(defn get-muls [s]
+  (re-seq #"mul\(\d+,\d+\)" s))
+
+(defn extract-mul [s]
+  (let [[_ a-str b-str] (re-matches #"mul\((\d+),(\d+)\)" s)
+        a (edn/read-string a-str)
+        b (edn/read-string b-str)]
+    [:mul a b]))
+
+(defn mul [a b]
+  (* a b))
+
+(defn mull [[_ a b]]
+  (mul a b))
+
+(defn solve-day-3-part-1 [in]
+  (reduce +
+          (sequence
+           (comp
+            (map extract-mul)
+            (map mull))
+           (get-muls in))))
+
+(defn solve-day-3-part-2 [])
+
 ;; Day 2
 
 (defn parse-report [line]
