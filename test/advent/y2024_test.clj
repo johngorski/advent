@@ -4,6 +4,72 @@
    [advent.y2024 :refer :all]
    [clojure.test :refer :all]))
 
+
+(deftest grids
+  (testing "grid construction"
+    (is (= [["1" "2" "3"]
+            ["4" "5" "6"]
+            ["7" "8" "9"]]
+           (grid (puzzle/sample-lines "123
+456
+789")))))
+  (testing "grid size"
+    (is (= {:rows 3, :columns 4}
+           (grid-size [[1 2 3 4]
+                       [1 2 3 4]
+                       [1 2 3 4]]))))
+  (testing "grid bounds"
+    (is (= (let [t true
+                 f false]
+             [f f f f f
+              f t t t f
+              f t t t f
+              f f f f f])
+           (let [in-bounds? (bounds-checker [[1 2 3]
+                                             [4 5 6]])]
+             (for [r (range -1 3)
+                   c (range -1 4)]
+               (in-bounds? [r c]))))))
+  (testing "cell seq"
+    (is (= [3 5 7]
+           (cell-seq [[1 2 3]
+                      [4 5 6]
+                      [7 8 9]]
+                     [0 2]
+                     [1 -1])))))
+
+(deftest day-4
+  (def sample-4-1-lines
+    (puzzle/sample-lines
+     "..X...
+.SAMX.
+.A..A.
+XMAS.S
+.X...."))
+  (def sample-4-2
+    (puzzle/sample-lines
+     "MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX"))
+  (testing "x locations"
+    (is (= #{[0 2] [1 4] [3 0] [4 1]}
+           (into #{} (x-locations (grid sample-4-1-lines))))))
+  (testing "xmases-at"
+    (is (= [[1 1]]
+           (xmases-at (grid sample-4-1-lines) [0 2]))))
+  (testing "part 1 solutions"
+    (is (= 4 (solve-day-4-part-1 sample-4-1-lines)))
+    (is (= 2297 (solve-day-4-part-1 (puzzle/in-lines 2024 4))))))
+
+
+
 (deftest day-3
   (def sample-3
     "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))")
