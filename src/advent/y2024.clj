@@ -63,10 +63,13 @@
         :when (not (and (zero? dr) (zero? dc)))]
     [dr dc]))
 
-(defn x-locations [grid]
+(defn val-grid-locations [val grid]
   (filter (fn [loc]
-            (= "X" (cell-at grid loc)))
+            (= val (cell-at grid loc)))
           (cell-locs grid)))
+
+(defn x-locations [grid]
+  (val-grid-locations "X" grid))
 
 (defn xmas-at?
   "Whether 'XMAS' is in grid starting at loc and going in dir"
@@ -88,6 +91,23 @@
                 (count (xmases-at g loc))))
          (reduce +))))
 
+(defn a-locations [grid]
+  (val-grid-locations "A" grid))
+
+(defn x-mas-at? [grid a-loc]
+  (let [se (cell-seq grid (v+ a-loc [-1 -1]) [1 1])
+        ne (cell-seq grid (v+ a-loc [-1 1]) [1 -1])
+        is-mas? (fn [s-seq]
+                  (#{"MAS" "SAM"}
+                   (apply str (take 3 s-seq))))]
+    (and (is-mas? se) (is-mas? ne))))
+
+(defn solve-day-4-part-2 [lines]
+  (let [g (grid lines)]
+    (->> (a-locations g)
+         (filter (fn [loc]
+                   (x-mas-at? g loc)))
+         count)))
 
 ;; Day 3
 

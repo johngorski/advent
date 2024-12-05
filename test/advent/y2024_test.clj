@@ -59,15 +59,38 @@ SAXAMASAAA
 MAMMMXMMMM
 MXMXAXMASX"))
   (testing "x locations"
-    (is (= #{[0 2] [1 4] [3 0] [4 1]}
-           (into #{} (x-locations (grid sample-4-1-lines))))))
+    (is (= #{[0 2] [1 4] [3 0] [4 1]})
+        (into #{} (x-locations (grid sample-4-1-lines)))))
   (testing "xmases-at"
     (is (= [[1 1]]
            (xmases-at (grid sample-4-1-lines) [0 2]))))
   (testing "part 1 solutions"
     (is (= 4 (solve-day-4-part-1 sample-4-1-lines)))
-    (is (= 2297 (solve-day-4-part-1 (puzzle/in-lines 2024 4))))))
-
+    (is (= 2297 (solve-day-4-part-1 (puzzle/in-lines 2024 4)))))
+  (def sample-4-3-lines
+    (puzzle/sample-lines
+     ".M.S......
+..A..MSMS.
+.M.S.MAA..
+..A.ASMSM.
+.M.S.M....
+..........
+S.S.S.S.S.
+.A.A.A.A..
+M.M.M.M.M.
+.........."))
+  (def sample-4-x-mas-grid
+    (grid
+     (puzzle/sample-lines
+      "M.M
+.A.
+S.S")))
+  (testing "x-mas detection"
+    (is (x-mas-at? sample-4-x-mas-grid [1 1]))
+    (is (not (x-mas-at? sample-4-x-mas-grid [1 0]))))
+  (testing "part 2 solution"
+    (is (= 9 (solve-day-4-part-2 sample-4-3-lines)))
+    (is (= 1745 (solve-day-4-part-2 (puzzle/in-lines 2024 4))))))
 
 
 (deftest day-3
