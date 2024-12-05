@@ -7,7 +7,6 @@
 (deftest day-3
   (def sample-3
     "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))")
-  (comment)
   (testing "multiply single"
     (is (= 2024 (mul 44 46))))
   (testing "extract mul"
@@ -19,9 +18,29 @@
   (testing "part 1 solutions"
     (is (= 161 (solve-day-3-part-1 sample-3)))
     (is (= 184511516 (solve-day-3-part-1 (puzzle/in 2024 3)))))
-  #_(testing "part 2 solutions"
-    (is (= 4 (solve-day-3-part-2 sample-3-lines)))
-    (is (= 308 (solve-day-3-part-2 (puzzle/in-lines 2024 3))))))
+  (testing "nil on extract-mul mismatch"
+    (is (nil? (extract-mul "mul (2,2)"))))
+  (def sample-3-2 "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))")
+  (testing "op detection"
+    (is (= '("mul(2,4)" "don't()" "mul(5,5)" "mul(11,8)" "do()" "mul(8,5)")
+           (get-ops sample-3-2))))
+  (testing "do parsing"
+    (is (extract-do "do()"))
+    (is (nil? (extract-do "mul()"))))
+  (testing "don't parsing"
+    (is (extract-don't "don't()"))
+    (is (nil? (extract-don't "mul()"))))
+  (testing "op parsing"
+    (is (= (parse-ops sample-3-2)
+           '([:mul 2 4] [:don't] [:mul 5 5] [:mul 11 8] [:do] [:mul 8 5])))
+    (is (nil? (extract-op "nothing"))))
+  (testing "op application"
+    (is (= 48
+           (:accumulator (apply-ops {:enabled-ops #{:mul}}
+                                    '([:mul 2 4] [:don't] [:mul 5 5] [:mul 11 8] [:do] [:mul 8 5]))))))
+  (testing "part 2 solutions"
+    (is (= 48 (solve-day-3-part-2 sample-3-2)))
+    (is (= 90044227 (solve-day-3-part-2 (puzzle/in 2024 3))))))
 
 (deftest day-2
   (def sample-2-lines

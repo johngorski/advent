@@ -11,14 +11,17 @@
 
 ;; Day 3
 
+(def mul-re #"mul\(\d+,\d+\)")
+
 (defn get-muls [s]
-  (re-seq #"mul\(\d+,\d+\)" s))
+  (re-seq mul-re s))
 
 (defn extract-mul [s]
-  (let [[_ a-str b-str] (re-matches #"mul\((\d+),(\d+)\)" s)
-        a (edn/read-string a-str)
-        b (edn/read-string b-str)]
-    [:mul a b]))
+  (when-let [match (re-matches #"mul\((\d+),(\d+)\)" s)]
+    (let [[_ a-str b-str] match
+          a (edn/read-string a-str)
+          b (edn/read-string b-str)]
+      [:mul a b])))
 
 (defn mul [a b]
   (* a b))
@@ -34,7 +37,59 @@
             (map mull))
            (get-muls in))))
 
-(defn solve-day-3-part-2 [])
+(def do-re #"do\(\)")
+(def don't-re #"don't\(\)")
+
+(defn get-ops [in]
+  (map first (re-seq #"(mul\(\d+,\d+\)|do\(\)|don't\(\))" in)))
+
+(defn extract-do [s]
+  (when (re-matches do-re s) [:do]))
+
+(defn extract-don't [s]
+  (when (re-matches don't-re s) [:don't]))
+
+(defn extract-op [s]
+  (or (extract-mul s)
+      (extract-do s)
+      (extract-don't s)))
+
+(defn parse-ops [in]
+  (map extract-op (get-ops in)))
+
+(defn reduce-mul [cpu [_ a b]]
+  (if ((:enabled-ops cpu) :mul)
+    (update cpu
+            :accumulator
+            #(let [product (mul a b)]
+               (+ (or % 0) product)))
+    cpu))
+
+(defn reduce-do [cpu [_ a b]]
+  (update cpu :enabled-ops conj :mul))
+
+(defn reduce-don't [cpu [_ a b]]
+  (update cpu :enabled-ops disj :mul))
+
+(defn op-reducer [cpu instr]
+  (case (first instr)
+    :mul (reduce-mul cpu instr)
+    :do (reduce-do cpu instr)
+    :don't (reduce-don't cpu instr)))
+
+(defn apply-ops [cpu ops]
+  (reduce
+   op-reducer
+   cpu
+   ops))
+
+(defn solve-day-3-part-2 [in]
+  (:accumulator
+   (apply-ops
+    {:accumulator 0
+     :enabled-ops #{:mul}}
+    (parse-ops in))))
+
 
 ;; Day 2
 
