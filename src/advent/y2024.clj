@@ -9,6 +9,71 @@
    [instaparse.core :as insta]))
 
 
+;; Day 5
+
+(defn parse-rule [line]
+  (string/split line #"\|"))
+
+(defn parse-update [line]
+  (string/split line #","))
+
+(defn rule-map [line-rules]
+  (reduce
+   (fn [rule-map [before after]]
+     (update rule-map before #(conj (or % #{}) after)))
+   {}
+   line-rules))
+
+(defn parse-ordering-rules [lines]
+  (let [[rule-lines _ update-lines] (partition-by empty? lines)
+        rules (map parse-rule rule-lines)]
+    {:rules rules
+     :rule-map (rule-map rules)
+     :updates (map parse-update update-lines)}))
+
+(defn partial-order-checker
+  "From the given rules, returns a function to tell whether a precedes b."
+  [rules]
+  (fn [[a b]]
+    ;; Attempt: only falsified if a is supposed to follow b
+    (not ((get rules b #{}) a))))
+
+(defn sequence-pairs [[before & tail]]
+  (if before
+    (lazy-seq (concat (map (fn [after]
+                             [before after])
+                           tail)
+                      (sequence-pairs tail)))
+    ()))
+
+(defn update-follows-order [update-checker manual-update]
+  (every? update-checker (sequence-pairs manual-update)))
+
+(defn middle-update-element [upd]
+  (nth upd (quot (dec (count upd))
+                 2)))
+
+(defn solve-day-5-part-1 [lines]
+  (let [{:keys [rules rule-map updates]} (parse-ordering-rules lines)
+        checker (partial-order-checker rule-map)]
+    (reduce +
+            (sequence
+             (comp
+              (filter (fn [upd]
+                        (update-follows-order checker upd)))
+              (map middle-update-element)
+              (map edn/read-string))
+             updates))))
+
+(comment
+  (defn partial-ordering-sorter
+    "Reterns fn that sorts an upd according to the partial ordering checked by checker."
+    [checker])
+  (fn [upd])
+  (loop [[head & ]]))
+
+
+
 ;; Day 4
 ;; Okay, after this I'm *DONE* reimplementing grid functions. Last time. Then over
 ;; into the advent.grid ns.

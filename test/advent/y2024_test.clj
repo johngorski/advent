@@ -5,6 +5,73 @@
    [clojure.test :refer :all]))
 
 
+(deftest day-5
+  (testing "can parse a rule"
+    (is (= (parse-rule "a|b")
+           ["a" "b"])))
+  (testing "can parse an update"
+    (is (= (parse-update "75,29,13")
+           ["75" "29" "13"])))
+  (def sample-5-lines
+    (puzzle/sample-lines
+     "47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47"))
+  (comment
+    (parse-ordering-rules sample-5-lines)
+    (rule-map (:rules (parse-ordering-rules sample-5-lines))))
+  (testing "Expected sequence pairs"
+    (is (= (take 20 (sequence-pairs [1 2 3]))
+           [[1 2] [1 3] [2 3]])))
+
+  (testing "checkers can fail"
+    (is (let [{:keys [rules rule-map updates]} (parse-ordering-rules sample-5-lines)
+              checker (partial-order-checker rule-map)]
+          (not (checker ["75" "97"])))))
+
+  (testing "rule parser examples"
+    (is (= [true true true false false false]
+           (let [{:keys [rules rule-map updates]} (parse-ordering-rules sample-5-lines)
+                 checker (partial-order-checker rule-map)]
+             (map (fn [upd]
+                    (update-follows-order checker upd))
+                  updates)))))
+
+  (testing "middle element examples"
+    (is (= "61" (middle-update-element (parse-update "75,47,61,53,29")))))
+
+  (testing "part 1 solution"
+    (testing "sample"
+      (= 143 (solve-day-5-part-1 sample-5-lines)))
+    (testing "puzzle"
+      (is (= 5948 (solve-day-5-part-1 (puzzle/in-lines 2024 5)))))))
+
+
 (deftest grids
   (testing "grid construction"
     (is (= [["1" "2" "3"]
