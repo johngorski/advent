@@ -42,6 +42,10 @@
     (is (= (solve-day-6-part-1 (puzzle/in-lines 2024 6))
            4711))))
 
+(comment
+  (guard-states (lab-from-lines sample-6-lines)))
+
+
 
 (deftest day-5
   (testing "can parse a rule"

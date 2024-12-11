@@ -43,6 +43,7 @@
       (turn-guard-right guard)
       (move-guard-forward guard))))
 
+
 (defn guard-path [{:keys [in-lab?
                           obstruction-locs
                           guard]
@@ -54,9 +55,50 @@
       (take-while in-lab?))
      (iterate move-guard guard))))
 
-
 (defn solve-day-6-part-1 [lines]
   (count (into #{} (guard-path (lab-from-lines lines)))))
+
+;; Day 6 part 2 approach:
+;; Proposed: Since only the guard moves, anything causing the guard to repeat a state will cause a loop.
+;; - if the next square forward is unvisited and not an obstacle (or the starting point, or out of bounds),
+;;   - check if placing an obstacle there would return a guard to a previous state.
+
+;; Aaaah, hold up: this only works for cases where the guard immediately turns on to the path.
+;; It misses the case where the guard needs to advance forward in order to rendezvous with a previous state.
+;; And it misses the case where you step forward and then ricochet on to an obstacle that leads to a state
+;; repetition.
+
+;; So really, best approach is probaly brute-force. But not after midnight.
+;; Let's get a simple cycle-detection routine together, then brute-force it step by step in the state.
+;; But not after midnight. Sleep now.
+
+(defn guard-states [{:keys [in-lab?
+                            obstruction-locs
+                            guard]
+                     :as lab}]
+  (let [move-guard (guard-mover obstruction-locs)]
+    (sequence
+     (take-while (comp in-lab? :position))
+     (iterate move-guard guard))))
+
+#_(defn looping-obstructions [{:keys [in-lab?
+                                    obstruction-locs
+                                    guard]
+                             :as lab}]
+  (let [move-guard (guard-mover obstruction-locs)]
+    (loop [{:keys [obstruction-acc
+                   visited
+                   guard-history
+                   guard]
+            :as props}
+           {:obstruction-acc #{}
+            :visited #{(:position guard)}
+            :guard-history #{}
+            :guard guard}]))
+  (sequence
+   (take-while (comp in-lab? :position))
+   (iterate move-guard guard)))
+
 
 (defn solve-day-6-part-2 [])
 
