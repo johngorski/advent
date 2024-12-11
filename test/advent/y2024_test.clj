@@ -5,6 +5,44 @@
    [clojure.test :refer :all]))
 
 
+(deftest day-6
+  (def sample-6-lines
+    (puzzle/sample-lines
+     "....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#..."))
+  (testing "take in the lab"
+    (is (= (dissoc (lab-from-lines sample-6-lines) :in-lab?)
+           {:obstruction-locs #{[7 8] [9 6] [1 9] [4 7] [8 0] [6 1] [0 4] [3 2]}
+            :guard {:position [6 4]
+                    :direction [-1 0]}})))
+  (testing "path prediction"
+    (is (= (guard-path (lab-from-lines sample-6-lines))
+           '([6 4] [5 4] [4 4] [3 4] [2 4] [1 4]
+             [1 4] [1 5] [1 6] [1 7] [1 8]
+             [1 8] [2 8] [3 8] [4 8] [5 8] [6 8]
+             [6 8] [6 7] [6 6] [6 5] [6 4] [6 3] [6 2]
+             [6 2] [5 2] [4 2]
+             [4 2] [4 3] [4 4] [4 5] [4 6]
+             [4 6] [5 6] [6 6] [7 6] [8 6]
+             [8 6] [8 5] [8 4] [8 3] [8 2] [8 1]
+             [8 1] [7 1]
+             [7 1] [7 2] [7 3] [7 4] [7 5] [7 6] [7 7]
+             [7 7] [8 7] [9 7]))))
+  (testing "part 1 solution"
+    (is (= (solve-day-6-part-1 sample-6-lines)
+           41))
+    (is (= (solve-day-6-part-1 (puzzle/in-lines 2024 6))
+           4711))))
+
+
 (deftest day-5
   (testing "can parse a rule"
     (is (= (parse-rule "a|b")
@@ -80,18 +118,20 @@
     (is (= (compare-preserving-nil 1 1)
            0))
     (is (= (compare-preserving-nil 2 1)
-           1))))
-(testing "part 2 solution")
-(testing "sample"
-  (is (= 123 (solve-day-5-part-2 sample-5-lines))))
-(solve-day-5-part-2 sample-5-lines)
-#_(("97" "75" "47" "61" "53")
-   ("61" "29" "13")
-   ("97" "75" "47" "29" "13"))
-
-(testing "puzzle")
-(solve-day-5-part-2 (puzzle/in-lines 2024 5))
-;; => 3786 ;; too high
+           1)))
+  (testing "part 2 solution"
+    (testing "sample"
+      (is (= 123 (solve-day-5-part-2 sample-5-lines))))
+    (comment
+      (solve-day-5-part-2 sample-5-lines)
+      #_(("97" "75" "47" "61" "53")
+         ("61" "29" "13")
+         ("97" "75" "47" "29" "13")))
+    (testing "puzzle"
+      (solve-day-5-part-2 (puzzle/in-lines 2024 5))
+      ;; => 3786 ;; too high
+      ;; TODO: Investigate by checking whether the 'sorted' lists are indeed sorter per the checker in part 1.
+      ())))
 
 (deftest grids
   (testing "grid construction"

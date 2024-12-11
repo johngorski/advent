@@ -1,5 +1,6 @@
 (ns advent.y2024
   (:require
+   [advent.grid :as grids]
    [advent.puzzle :as puzzle]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -9,6 +10,55 @@
    [instaparse.core :as insta]
    [loom.alg :as graph-algs]
    [loom.graph :as loom]))
+
+
+;; Day 6
+
+(defn lab-from-lines [lines]
+  (let [lab-grid (grids/grid lines)]
+    {:in-lab? (grids/bounds-checker lab-grid)
+     :obstruction-locs (into #{} (grids/val-grid-locations "#" lab-grid))
+     :guard {:position (first (grids/val-grid-locations "^" lab-grid))
+             :direction [-1 0]}})) ;; north
+
+(defn turn-right [direction]
+  (case direction
+    [-1  0] [ 0  1]  ;; north to east
+    [ 0  1] [ 1  0]  ;; east to south
+    [ 1  0] [ 0 -1]  ;; south to west
+    [ 0 -1] [-1  0]));; west to north
+
+(defn turn-guard-right [guard]
+  (update guard :direction turn-right))
+
+(defn next-guard-loc [{:keys [direction position] :as guard}]
+  (grids/v+ position direction))
+
+(defn move-guard-forward [guard]
+  (assoc guard :position (next-guard-loc guard)))
+
+(defn guard-mover [obstruction-locs]
+  (fn [guard]
+    (if (obstruction-locs (next-guard-loc guard))
+      (turn-guard-right guard)
+      (move-guard-forward guard))))
+
+(defn guard-path [{:keys [in-lab?
+                          obstruction-locs
+                          guard]
+                   :as lab}]
+  (let [move-guard (guard-mover obstruction-locs)]
+    (sequence
+     (comp
+      (map :position)
+      (take-while in-lab?))
+     (iterate move-guard guard))))
+
+
+(defn solve-day-6-part-1 [lines]
+  (count (into #{} (guard-path (lab-from-lines lines)))))
+
+(defn solve-day-6-part-2 [])
 
 
 ;; Day 5
