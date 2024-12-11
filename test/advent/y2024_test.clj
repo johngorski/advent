@@ -69,8 +69,29 @@
     (testing "sample"
       (= 143 (solve-day-5-part-1 sample-5-lines)))
     (testing "puzzle"
-      (is (= 5948 (solve-day-5-part-1 (puzzle/in-lines 2024 5)))))))
+      (is (= 5948 (solve-day-5-part-1 (puzzle/in-lines 2024 5))))))
+  (testing "nil-preserving comparisons"
+    (is (= (compare-preserving-nil 1 2)
+           -1))
+    (is (= (compare-preserving-nil nil 2)
+           0))
+    (is (= (compare-preserving-nil 1 nil)
+           0))
+    (is (= (compare-preserving-nil 1 1)
+           0))
+    (is (= (compare-preserving-nil 2 1)
+           1))))
+(testing "part 2 solution")
+(testing "sample"
+  (is (= 123 (solve-day-5-part-2 sample-5-lines))))
+(solve-day-5-part-2 sample-5-lines)
+#_(("97" "75" "47" "61" "53")
+   ("61" "29" "13")
+   ("97" "75" "47" "29" "13"))
 
+(testing "puzzle")
+(solve-day-5-part-2 (puzzle/in-lines 2024 5))
+;; => 3786 ;; too high
 
 (deftest grids
   (testing "grid construction"
@@ -104,6 +125,7 @@
                       [7 8 9]]
                      [0 2]
                      [1 -1])))))
+;; => #'advent.y2024-test/grids
 
 (deftest day-4
   (def sample-4-1-lines

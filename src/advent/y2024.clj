@@ -6,7 +6,9 @@
    [clojure.set :as sets]
    [clojure.string :as string]
    [clojure.zip :as zip]
-   [instaparse.core :as insta]))
+   [instaparse.core :as insta]
+   [loom.alg :as graph-algs]
+   [loom.graph :as loom]))
 
 
 ;; Day 5
@@ -65,13 +67,72 @@
               (map edn/read-string))
              updates))))
 
-(comment
-  (defn partial-ordering-sorter
-    "Reterns fn that sorts an upd according to the partial ordering checked by checker."
-    [checker])
-  (fn [upd])
-  (loop [[head & ]]))
+(defn bf-ordinals [graph-map]
+  (into {}
+        (map-indexed (fn [idx v]
+                       [v idx]))
+        (graph-algs/topsort ;; graph-algs/bf-traverse
+         (loom/digraph graph-map))))
 
+(comment
+ (bf-ordinals {1 #{2 3} 2 #{3 4}})
+ {1 0, 3 1, 2 2, 4 3})
+
+(comment
+  (defn bf-order
+    "Takes the graph represented by g-adjacency-map (source vertices to sets of destination vertices) and returns a map from vertex to BFS order."
+    [rule-map upd]
+    (let [ordinals (bf-ordinals rule-map)]))
+
+  (loom/digraph {1 #{2 3} 2 #{3 1}})
+  #loom.graph.BasicEditableDigraph{:nodeset #{1 3 2},
+                                   :adj {1 #{3 2}, 2 #{1 3}},
+                                   :in {3 #{1 2}, 2 #{1}, 1 #{2}}}
+
+  (loom/edges #loom.graph.BasicEditableDigraph{:nodeset #{1 3 2},
+                                               :adj {1 #{3 2}, 2 #{1 3}},
+                                               :in {3 #{1 2}, 2 #{1}, 1 #{2}}})
+
+  (graph-algs/bf-traverse (loom/digraph {1 #{2 3} 2 #{3 1} 3 #{4}}))
+  ;; => [1 3 2 4]
+  ;; => [1 3 2]
+  ())
+
+(defn compare-preserving-nil [a b]
+  (if (some nil? [a b])
+    0
+    (compare a b)))
+
+
+(defn partial-ordering-sorter
+  "Reterns fn that sorts an upd according to the partial ordering checked by checker."
+  ;; Actually, maybe what we want is the rule map.
+  ;; Idea: BFS for the rule map. Make this a static order.
+  ;; Sort each list by its BFS index and it will be sorted by partial order, too.
+  ;; Main question: What's the earliest in the partial order? What if there are multiple?
+  ;; GraphViz sounds helpful for inspiration.
+  ;; Could maybe start somewhere arbitrary and then add to get other indices?
+  ;; oh wait wait wait, piece o' cake: all nodes without predecessors are in the initial BFS queue.
+  ;; So the question: Write (another) BFS, find a Clojure graph protocol to adapt for BFS, or
+  ;; write a Clojure graph protocol for my future use and others' good times.
+  [rule-map]
+  (let [ordinals (bf-ordinals rule-map)
+        keyfn ordinals]
+    (fn [upd]
+      (sort-by ordinals compare-preserving-nil upd))))
+
+(defn solve-day-5-part-2 [lines]
+  (let [{:keys [rules rule-map updates]} (parse-ordering-rules lines)
+        checker (partial-order-checker rule-map)]
+    (reduce +
+            (sequence
+             (comp
+              (remove (fn [upd]
+                        (update-follows-order checker upd)))
+              (map (partial-ordering-sorter rule-map))
+              (map middle-update-element)
+              (map edn/read-string))
+             updates))))
 
 
 ;; Day 4
