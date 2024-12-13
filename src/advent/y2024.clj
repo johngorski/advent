@@ -60,17 +60,14 @@
 
 ;; Day 6 part 2 approach:
 ;; Proposed: Since only the guard moves, anything causing the guard to repeat a state will cause a loop.
-;; - if the next square forward is unvisited and not an obstacle (or the starting point, or out of bounds),
-;;   - check if placing an obstacle there would return a guard to a previous state.
 
-;; Aaaah, hold up: this only works for cases where the guard immediately turns on to the path.
-;; It misses the case where the guard needs to advance forward in order to rendezvous with a previous state.
-;; And it misses the case where you step forward and then ricochet on to an obstacle that leads to a state
-;; repetition.
+;; 1. put hypothetical boulder in front (if path not already traversed or there isn't already a boulder and it's in-bounds)
+;; 2. see if there's a cycle
+;; 3. collect the boulder locations for which there is a cycle
 
-;; So really, best approach is probaly brute-force. But not after midnight.
-;; Let's get a simple cycle-detection routine together, then brute-force it step by step in the state.
-;; But not after midnight. Sleep now.
+;; aka filter candidate boulders for which there is a cycle
+;; candidate boulders are in front of the guard every step of the guard's path
+;; if we're scared of infinite loops, max guard states is < 4x number of locations
 
 (defn guard-states [{:keys [in-lab?
                             obstruction-locs
@@ -81,26 +78,43 @@
      (take-while (comp in-lab? :position))
      (iterate move-guard guard))))
 
-#_(defn looping-obstructions [{:keys [in-lab?
-                                    obstruction-locs
-                                    guard]
-                             :as lab}]
-  (let [move-guard (guard-mover obstruction-locs)]
-    (loop [{:keys [obstruction-acc
-                   visited
-                   guard-history
-                   guard]
-            :as props}
-           {:obstruction-acc #{}
-            :visited #{(:position guard)}
-            :guard-history #{}
-            :guard guard}]))
-  (sequence
-   (take-while (comp in-lab? :position))
-   (iterate move-guard guard)))
+(defn candidate-obstructions [{:keys [in-lab?
+                                      obstruction-locs
+                                      guard]
+                               :as lab}]
+  (sets/difference
+   (into #{}
+         (comp
+          (map next-guard-loc)
+          (filter in-lab?))
+         (guard-states lab))
+   obstruction-locs
+   #{(:position guard)}))
 
+(defn seq-repeats? [s]
+  (loop [acc #{}
+         [head & tail] s]
+    (when head
+      (or
+       (acc head)
+       (recur (conj acc head) tail)))))
 
-(defn solve-day-6-part-2 [])
+(defn lab-loops? [lab]
+  (seq-repeats? (guard-states lab)))
+
+(defn obstruct-lab [lab obstruction-loc]
+  (update lab :obstruction-locs conj obstruction-loc))
+
+(defn loops-guard? [lab obstruction]
+  (-> lab
+      (obstruct-lab obstruction)
+      lab-loops?))
+
+(defn solve-day-6-part-2 [lines]
+  (let [lab (lab-from-lines lines)
+        candidates (candidate-obstructions lab)
+        loopers (filter #(loops-guard? lab %) candidates)]
+    (count loopers)))
 
 
 ;; Day 5

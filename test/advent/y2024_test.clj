@@ -40,12 +40,26 @@
     (is (= (solve-day-6-part-1 sample-6-lines)
            41))
     (is (= (solve-day-6-part-1 (puzzle/in-lines 2024 6))
-           4711))))
+           4711)))
 
-(comment
-  (guard-states (lab-from-lines sample-6-lines)))
-
-
+  (comment
+    (guard-states (lab-from-lines sample-6-lines)))
+  (testing "sequence repetition detection"
+    (testing "when it does repeat"
+      (is (seq-repeats? [1 1]))
+      (is (seq-repeats? [1 2 1]))
+      (is (seq-repeats? [1 2 3 1]))
+      (is (seq-repeats? [3 2 3 1])))
+    (testing "when it doesn't repeat"
+      (is (seq-repeats? []))
+      (is (seq-repeats? [1]))
+      (is (seq-repeats? [1 2]))
+      (is (seq-repeats? [1 2 3]))))
+  (testing "part 2 solution"
+    (is (= (solve-day-6-part-2 sample-6-lines)
+           6))
+    (is (= (solve-day-6-part-2 (puzzle/in-lines 2024 6))
+           1562))))
 
 (deftest day-5
   (testing "can parse a rule"
