@@ -55,8 +55,17 @@
              3749))))
   (testing "puzzle"
     (is (= (solve-day-7-part-1 (puzzle/in-lines 2024 7))
-           20281182715321))))
-
+           20281182715321)))
+  (testing "concat operator"
+    (is (= 12345 (|| 12 345))))
+  (testing "part 2"
+    (testing "sample with concat"
+      (is (bridge-calibration-satisfyable-with-concat? {:test-value 156 :factors [15 6]})))
+    (testing "sample"
+      (is (= (solve-day-7-part-2 sample-7-lines)
+             11387))
+      (is (= (solve-day-7-part-2 (puzzle/in-lines 2024 7))
+             159490400628354)))))
 
 (deftest day-6
   (def sample-6-lines
@@ -113,6 +122,7 @@
            6))
     (is (= (solve-day-6-part-2 (puzzle/in-lines 2024 6))
            1562))))
+;; => #'advent.y2024-test/day-6
 
 (deftest day-5
   (testing "can parse a rule"

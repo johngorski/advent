@@ -60,6 +60,35 @@
             (map :test-value))
            lines)))
 
+(defn ||
+  "\"combines the digits from its left and right inputs into a single number. For example, 12 || 345 would become 12345.\""
+  [a b]
+  (edn/read-string (str a b)))
+
+(defn bridge-calibration-op-seqs-with-concat
+  ([factor-count]
+   (bridge-calibration-op-seqs-with-concat factor-count [[]]))
+  ([factor-count op-seqs-acc]
+   (if (< factor-count 1)
+     op-seqs-acc
+     (recur (dec factor-count)
+            (for [op-seq op-seqs-acc
+                  last-op [+ * ||]]
+              (conj op-seq last-op))))))
+
+(defn bridge-calibration-satisfyable-with-concat? [{:keys [test-value factors] :as calibration}]
+  (let [satisfies? (calibration-satisfaction-predicate calibration)]
+    (some satisfies? (bridge-calibration-op-seqs-with-concat (count factors)))))
+
+(defn solve-day-7-part-2 [lines]
+  (reduce +
+          (sequence
+           (comp
+            (map bridge-calibration-input)
+            (filter bridge-calibration-satisfyable-with-concat?)
+            (map :test-value))
+           lines)))
+
 
 ;; Day 6
 
