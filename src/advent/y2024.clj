@@ -12,6 +12,55 @@
    [loom.graph :as loom]))
 
 
+;; Day 7
+;; The nice thing about putting new days at the top is that without forward declarations, tantalizing reuse immediately suggests
+;; movement into another ns.
+
+(defn bridge-calibration-input [line]
+  (let [[test-value-s factors-s] (string/split line #"\s*:\s*")
+        factor-ss (string/split factors-s #"\s+")]
+    {:test-value (edn/read-string test-value-s)
+     :factors (map edn/read-string factor-ss)}))
+
+(defn bridge-calibration-op-seqs
+  ([factor-count]
+   (bridge-calibration-op-seqs factor-count [[]]))
+  ([factor-count op-seqs-acc]
+   (if (< factor-count 1)
+     op-seqs-acc
+     (recur (dec factor-count)
+            (for [op-seq op-seqs-acc
+                  last-op [+ *]]
+              (conj op-seq last-op))))))
+
+(defn apply-op-seq [[start & factors] ops]
+  (loop [acc start
+         remaining-factors factors
+         remaining-ops ops]
+    (if (empty? remaining-factors)
+      acc
+      (let [[factor & factors'] remaining-factors
+            [op & ops'] remaining-ops]
+        (recur (op acc factor) factors' ops')))))
+
+(defn calibration-satisfaction-predicate [{:keys [test-value factors]}]
+  (fn [ops]
+    (= test-value (apply-op-seq factors ops))))
+
+(defn bridge-calibration-satisfyable? [{:keys [test-value factors] :as calibration}]
+  (let [satisfies? (calibration-satisfaction-predicate calibration)]
+    (some satisfies? (bridge-calibration-op-seqs (count factors)))))
+
+(defn solve-day-7-part-1 [lines]
+  (reduce +
+          (sequence
+           (comp
+            (map bridge-calibration-input)
+            (filter bridge-calibration-satisfyable?)
+            (map :test-value))
+           lines)))
+
+
 ;; Day 6
 
 (defn lab-from-lines [lines]

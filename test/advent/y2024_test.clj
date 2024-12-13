@@ -5,6 +5,59 @@
    [clojure.test :refer :all]))
 
 
+(deftest day-7
+  (def sample-7-lines
+    (puzzle/sample-lines
+     "190: 10 19
+3267: 81 40 27
+83: 17 5
+156: 15 6
+7290: 6 8 6 15
+161011: 16 10 13
+192: 17 8 14
+21037: 9 7 18 13
+292: 11 6 16 20"))
+  (testing "bridge calibration parsing examples"
+    (is (= {:test-value 190
+            :factors [10 19]}
+           (bridge-calibration-input (first sample-7-lines)))))
+  (testing "op-seq generation"
+    (is (= (bridge-calibration-op-seqs 1)
+           [[+]
+            [*]]))
+    (is (= (bridge-calibration-op-seqs 2)
+           [[+ +]
+            [+ *]
+            [* +]
+            [* *]]))
+    (is (= (bridge-calibration-op-seqs 3)
+           [[+ + +]
+            [+ + *]
+            [+ * +]
+            [+ * *]
+            [* + +]
+            [* + *]
+            [* * +]
+            [* * *]])))
+  (testing "op seq application"
+    (is (= 3
+           (apply-op-seq [1 1 1] [+ +])))
+    (is (= 20
+           (apply-op-seq [1 3 5] [+ *])))
+    (is (= 8
+           (apply-op-seq [1 3 5] [* +]))))
+  (testing "part 1 samples"
+    (is (= [true true nil nil nil nil nil nil true])
+        (map (comp bridge-calibration-satisfyable? bridge-calibration-input) sample-7-lines)))
+  (testing "solutions"
+    (testing "sample"
+      (is (= (solve-day-7-part-1 sample-7-lines)
+             3749))))
+  (testing "puzzle"
+    (is (= (solve-day-7-part-1 (puzzle/in-lines 2024 7))
+           20281182715321))))
+
+
 (deftest day-6
   (def sample-6-lines
     (puzzle/sample-lines
