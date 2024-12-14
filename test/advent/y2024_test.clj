@@ -44,7 +44,14 @@
       (is (= 14 (solve-day-8-part-1 sample-8-lines))))
     (testing "puzzle"
       (is (= (solve-day-8-part-1 (puzzle/in-lines 2024 8))
-             280)))))
+             280))))
+  (testing "part 2"
+    (testing "sample"
+      (is (= 34 (solve-day-8-part-2 sample-8-lines))))
+    (testing "puzzle"
+      (is (= (solve-day-8-part-2 (puzzle/in-lines 2024 8))
+             958)))))
+
 
 (def sample-7-lines
   (puzzle/sample-lines

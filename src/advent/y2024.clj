@@ -46,6 +46,26 @@
 (defn solve-day-8-part-1 [lines]
   (count (grid-antinodes (grids/from-lines lines))))
 
+(defn pair-harmonic-antinodes [grid loc-pair]
+  (let [[a b] loc-pair
+        dir (grids/v- b a)]
+    (into #{}
+          (concat (grids/loc-seq grid a dir)
+                  (grids/loc-seq grid a (grids/v- dir))))))
+
+(defn antenna-freq-harmonic-antinodes [grid antenna-freq-locs]
+  (into #{}
+        (mapcat (fn [loc-pair] (pair-harmonic-antinodes grid loc-pair)))
+        (all-pairs antenna-freq-locs)))
+
+(defn grid-harmonic-antinodes [grid]
+  (into #{}
+        (mapcat (fn [antenna-freq-locs] (antenna-freq-harmonic-antinodes grid antenna-freq-locs)))
+        (vals (frequency-locations grid))))
+
+(defn solve-day-8-part-2 [lines]
+  (count (grid-harmonic-antinodes (grids/from-lines lines))))
+
 
 ;; Day 7
 ;; The nice thing about putting new days at the top is that without forward declarations, tantalizing reuse immediately suggests
