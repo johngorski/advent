@@ -38,3 +38,15 @@
                      [0 2]
                      [1 -1])))))
 
+(deftest val-locations
+  (testing "location map"
+    (is (= {0 [[0 1] [0 2]
+               [1 0] [1 2]
+               [2 0] [2 1]]
+            1 [[0 0] [1 1] [2 2]]
+            }
+           (val-location-map
+            [[1 0 0]
+             [0 1 0]
+             [0 0 1]])))))
+

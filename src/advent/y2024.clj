@@ -12,6 +12,41 @@
    [loom.graph :as loom]))
 
 
+;; Day 8
+
+(defn frequency-locations [grid]
+  (-> (grids/val-location-map grid)
+      (dissoc ".")))
+
+(defn pair-antinodes [loc-pair]
+  (let [[a b] loc-pair
+        a-to-b (grids/v- b a)]
+    [(grids/v+ b a-to-b)
+     (grids/v- a a-to-b)]))
+
+(defn all-pairs [v]
+  (let [len (count v)]
+    (for [a (range len)
+          b (range (inc a) len)]
+      (mapv v [a b]))))
+
+(defn antenna-freq-antinodes [antenna-freq-locs]
+  (into #{}
+        (mapcat (fn [loc-pair] (pair-antinodes loc-pair)))
+        (all-pairs antenna-freq-locs)))
+
+(defn grid-antinodes [grid]
+  (let [in-bounds? (bounds-checker grid)]
+    (into #{}
+          (comp
+           (mapcat antenna-freq-antinodes)
+           (filter in-bounds?))
+          (vals (frequency-locations grid)))))
+
+(defn solve-day-8-part-1 [lines]
+  (count (grid-antinodes (grids/from-lines lines))))
+
+
 ;; Day 7
 ;; The nice thing about putting new days at the top is that without forward declarations, tantalizing reuse immediately suggests
 ;; movement into another ns.

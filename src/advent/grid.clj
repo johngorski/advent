@@ -4,8 +4,11 @@
 
 
 
-(defn grid [lines]
+(defn from-lines [lines]
   (mapv #(string/split % #"") lines))
+
+(defn grid [lines]
+  (from-lines lines))
 
 (defn grid-size [grid]
   {:rows (count grid)
@@ -18,6 +21,7 @@
            (<= 0 col-idx (dec columns))))))
 
 (def v+ (partial mapv +))
+(def v- (partial mapv -))
 
 (defn cell-at [grid location]
   (let [[r c] location]
@@ -51,5 +55,15 @@
   (filter (fn [loc]
             (= val (cell-at grid loc)))
           (cell-locs grid)))
+
+
+(defn val-location-map
+  "Map from cell value to seq of locations"
+  [grid]
+  (group-by #(cell-at grid %)
+            (let [{:keys [rows columns]} (grid-size grid)]
+              (for [r (range rows)
+                    c (range columns)]
+                [r c]))))
 
 

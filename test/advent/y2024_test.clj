@@ -1,14 +1,54 @@
 (ns advent.y2024-test
   (:require
+   [advent.grid :as grids]
    [advent.puzzle :as puzzle]
    [advent.y2024 :refer :all]
    [clojure.test :refer :all]))
 
 
-(deftest day-7
-  (def sample-7-lines
-    (puzzle/sample-lines
-     "190: 10 19
+
+;; likely to move to advent.combinatorics. We'll see.
+(deftest combinatorics
+  (testing "pairs"
+    (is (= (set (all-pairs [1 2 3]))
+           (set [[1 2] [1 3] [2 3]])))))
+
+(def sample-8-lines
+  (puzzle/sample-lines
+   "............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............"))
+
+(deftest day-8
+  (testing "getting frequencies"
+    (is (= (frequency-locations (grids/from-lines sample-8-lines))
+           {"0" [[1 8] [2 5] [3 7] [4 4]], "A" [[5 6] [8 8] [9 9]]})))
+  (testing "antinodes"
+    (testing "example"
+      (is (= (set [[1 3] [7 6]])
+             (set (pair-antinodes [[3 4] [5 5]]))
+             (set (antenna-freq-antinodes [[3 4] [5 5]]))))
+      (is (= (set (antenna-freq-antinodes [[3 4] [5 5] [4 8]]))
+             #{[7 6] [1 3] [2 0] [3 11] [6 2] [5 12]}))))
+  (testing "part 1"
+    (testing "sample"
+      (is (= 14 (solve-day-8-part-1 sample-8-lines))))
+    (testing "puzzle"
+      (is (= (solve-day-8-part-1 (puzzle/in-lines 2024 8))
+             280)))))
+
+(def sample-7-lines
+  (puzzle/sample-lines
+   "190: 10 19
 3267: 81 40 27
 83: 17 5
 156: 15 6
@@ -17,6 +57,8 @@
 192: 17 8 14
 21037: 9 7 18 13
 292: 11 6 16 20"))
+
+(deftest day-7
   (testing "bridge calibration parsing examples"
     (is (= {:test-value 190
             :factors [10 19]}
