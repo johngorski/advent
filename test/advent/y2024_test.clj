@@ -5,6 +5,25 @@
    [advent.y2024 :refer :all]
    [clojure.test :refer :all]))
 
+(defn disk-seq-str [d-s]
+  (apply str (map #(or % ".") d-s)))
+
+(def sample-9 "2333133121414131402")
+
+(deftest day-9
+  (testing "parse sample input"
+    (is (= (disk-seq-str (disk-seq sample-9))
+           "00...111...2...333.44.5555.6666.777.888899")))
+  (testing "compacting"
+    (is (= (disk-seq-str (compact-files (disk-seq sample-9)))
+           "0099811188827773336446555566")))
+  (testing "part 1"
+    (testing "sample"
+      (is (= (solve-day-9-part-1 sample-9)
+             1928)))
+    (testing "puzzle"
+      (is (= (solve-day-9-part-1 (puzzle/in 2024 9))
+             6349606724455)))))
 
 
 ;; likely to move to advent.combinatorics. We'll see.

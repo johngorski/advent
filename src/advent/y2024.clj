@@ -12,6 +12,52 @@
    [loom.graph :as loom]))
 
 
+;; Day 9
+
+
+(defn disk-seq
+  "Very easy to second-guess a representation here. But whatever that representation is,
+  here is where we parse it from the input."
+  [in]
+  (->> (map parse-long
+            (string/split in #""))
+       (partition 2 2 [0])
+       (map-indexed (fn [file-id [file-len free-len]]
+                      (concat (repeat file-len file-id)
+                              (repeat (or free-len 0) nil))))
+       (apply concat)
+       (into [])))
+
+(defn compact-files
+  ([disk] (compact-files 0 disk))
+  ([free-idx disk]
+   (let [tail-idx (dec (count disk))]
+     (cond
+       (<= 0 tail-idx free-idx)
+       disk
+
+       (disk free-idx)
+       (recur (inc free-idx) disk)
+
+       (nil? (disk tail-idx))
+       (recur free-idx (subvec disk 0 tail-idx))
+
+       :else
+       (recur (inc free-idx) (-> disk
+                                 (assoc free-idx (disk tail-idx))
+                                 (subvec 0 tail-idx)
+                                 ))))))
+
+(defn filesystem-checksum [compacted-file-seq]
+  (->> compacted-file-seq
+       (map-indexed (fn [idx file-id]
+                      (* idx (or file-id 0))))
+       (reduce +)))
+
+(defn solve-day-9-part-1 [in]
+  ((comp filesystem-checksum compact-files disk-seq) in))
+
+
 ;; Day 8
 
 (defn frequency-locations [grid]
@@ -36,7 +82,7 @@
         (all-pairs antenna-freq-locs)))
 
 (defn grid-antinodes [grid]
-  (let [in-bounds? (bounds-checker grid)]
+  (let [in-bounds? (grids/bounds-checker grid)]
     (into #{}
           (comp
            (mapcat antenna-freq-antinodes)
