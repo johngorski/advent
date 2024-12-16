@@ -57,6 +57,124 @@
 (defn solve-day-9-part-1 [in]
   ((comp filesystem-checksum compact-files disk-seq) in))
 
+(defn free-space-at [disk free-idx]
+  (loop [acc 0
+         idx free-idx]
+    (if (disk idx)
+      acc
+      (recur (inc acc) (inc idx)))))
+
+(defn file-size [disk file-idx]
+  (if-let [file-id (disk file-idx)]
+    (loop [acc 1
+           idx (dec file-idx)]
+      (cond
+        (< idx 0)
+        acc
+
+        (= file-id (disk idx))
+        (recur (inc acc) (dec idx))
+
+        :else
+        acc))
+    0))
+
+(defn free-blocks
+  "Returns left-to-right vec of free blocks with :size and :start-idx keys."
+  [disk]
+  (let [disk-len (count disk)]
+    (loop [acc []
+           idx 0
+           started-free-block nil]
+      (cond
+        (<= disk-len idx)
+        acc
+
+        (disk idx)
+        (if started-free-block
+          (recur (conj acc started-free-block) (inc idx) nil)
+          (recur acc (inc idx) nil))
+
+        :else ;; free block
+        (if started-free-block
+          (recur acc (inc idx) (update started-free-block :size inc))
+          (recur acc (inc idx) {:size 1 :start-idx idx}))))))
+
+(defn move-file-on-disk
+  [disk from length to]
+  (if (<= length 0)
+    disk
+    (recur (assoc disk to (disk from), from nil)
+           (dec from)
+           (dec length)
+           (inc to))))
+
+(defn dissoc-seq
+  "Return a (hopefully lazy seq) from seq which skips over the item at the idx-th place."
+  [seq idx]
+  (let [before (take idx seq)
+        after (drop (inc idx) seq)]
+    (concat before after)))
+
+(defn update-free-blocks-from-move
+  "Very specific to the AoC problem. Only reduces free blocks, because that's all day 9 part 2 requires.
+  block-idx is the index of the free block, not the index of the disk.
+  Freaks out if length > block size because that helps us solve the problem sooner."
+  [blocks block-idx length]
+  (let [block (blocks block-idx)
+        size' (- (block :size) length)]
+    (cond
+      (< size' 0)
+      (throw (ex-info "Block size insufficient for move."
+                      {:size (block :size), :length length, :block-idx block-idx, :blocks blocks}))
+
+      (= 0 size')
+      (vec (dissoc-seq blocks block-idx))
+
+      :else
+      (let [start-idx' (+ length (block :start-idx))]
+        (assoc blocks block-idx {:size size' :start-idx start-idx'})))))
+
+(defn block-index-of-min-size [blocks size-needed]
+  (let [num-blocks (count blocks)]
+    (loop [block-idx 0]
+      (when (< block-idx num-blocks)
+        (if (<= size-needed (get-in blocks [block-idx :size]))
+          block-idx
+          (recur (inc block-idx)))))))
+
+
+;; TODO: Find the bug.
+(defn compact-files-no-frag
+  ;; Find block index by target index
+  ;; Update block. Remove empty free blocks.
+  ([disk] (compact-files-no-frag disk (free-blocks disk) (dec (count disk))))
+  ([disk free-blocks tail-idx]
+   (if (< tail-idx 0)
+     ;; tail pointer has reached the front of the disk
+     (do
+       (def *dbg*
+         {:disk disk
+          :free-blocks free-blocks
+          :tail-idx tail-idx})
+       disk)
+
+     (let [move-length (file-size disk tail-idx)]
+       (if (<= move-length 0) ;; tail pointer is inside of a free block
+         (recur disk free-blocks (dec tail-idx))
+
+         ;; handle the full file move at once; fit or no fit, next iteration is past the current file.
+         (let [tail-idx' (- tail-idx move-length)]
+           (if-let [block-idx (block-index-of-min-size free-blocks move-length)]
+             ;; we have a block of sufficient size
+             (let [block (free-blocks block-idx)
+                   block-start (block :start-idx)
+                   disk' (move-file-on-disk disk tail-idx move-length block-start)
+                   free-blocks' (update-free-blocks-from-move free-blocks block-idx move-length)]
+               (recur disk' free-blocks' tail-idx'))
+
+             (recur disk free-blocks tail-idx'))))))))
+
 
 ;; Day 8
 

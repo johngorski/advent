@@ -8,22 +8,72 @@
 (defn disk-seq-str [d-s]
   (apply str (map #(or % ".") d-s)))
 
+
 (def sample-9 "2333133121414131402")
 
 (deftest day-9
   (testing "parse sample input"
     (is (= (disk-seq-str (disk-seq sample-9))
            "00...111...2...333.44.5555.6666.777.888899")))
+
   (testing "compacting"
     (is (= (disk-seq-str (compact-files (disk-seq sample-9)))
            "0099811188827773336446555566")))
+
   (testing "part 1"
     (testing "sample"
       (is (= (solve-day-9-part-1 sample-9)
              1928)))
     (testing "puzzle"
       (is (= (solve-day-9-part-1 (puzzle/in 2024 9))
-             6349606724455)))))
+             6349606724455))))
+
+  (testing "free blocks"
+    (testing "00...111...2...333.44.5555.6666.777.888899"
+      ;; idx  0         1         2         3         4
+      ;; idx  012345678901234567890123456789012345678901
+      ;; size   3     3   3     1  1    1    1   1
+      (is (= (free-blocks (disk-seq sample-9))
+             [{:size 3, :start-idx 2}
+              {:size 3, :start-idx 8}
+              {:size 3, :start-idx 12}
+              {:size 1, :start-idx 18}
+              {:size 1, :start-idx 21}
+              {:size 1, :start-idx 26}
+              {:size 1, :start-idx 31}
+              {:size 1, :start-idx 35}]))))
+  (testing "move on disk"
+    (testing "00...111...2...333.44.5555.6666.777.888899"
+      ;; idx  0         1         2         3         4
+      ;; idx  012345678901234567890123456789012345678901
+      (is (= "0099.111...2...333.44.5555.6666.777.8888.."
+             (disk-seq-str
+              (move-file-on-disk
+               (disk-seq sample-9)
+               41 2 2))))))
+  (testing "track free block updates after move"
+    (is (= (update-free-blocks-from-move (free-blocks (disk-seq sample-9)) 0 2)
+           [{:size 1, :start-idx 4}
+            {:size 3, :start-idx 8}
+            {:size 3, :start-idx 12}
+            {:size 1, :start-idx 18}
+            {:size 1, :start-idx 21}
+            {:size 1, :start-idx 26}
+            {:size 1, :start-idx 31}
+            {:size 1, :start-idx 35}])))
+  (testing "proper file sizes"
+    (testing "00...111...2...333.44.5555.6666.777.888899"
+      ;; idx  0         1         2         3         4
+      ;; idx  012345678901234567890123456789012345678901
+      (is (= 0 (file-size (disk-seq sample-9) 31)))
+      (is (= 2 (file-size (disk-seq sample-9) 41)))))
+
+  (testing "compacting without fragmentation"))
+(testing "00...111...2...333.44.5555.6666.777.888899"
+  (is (= "00992111777.44.333....5555.6666.....8888.."
+      ;; "0099.111777.442333....5555.6666.....8888.."
+         (disk-seq-str
+          (compact-files-no-frag (disk-seq sample-9))))))
 
 
 ;; likely to move to advent.combinatorics. We'll see.
