@@ -66,6 +66,24 @@
     (testing "puzzle"
       (is (= (solve-day-10-part-1 (puzzle/in-lines 2024 10))
              629)))))
+(testing "trailhead ratings"
+  (is (= (map (fn [trailhead]
+                (trailhead-rating (topo-map sample-10-larger-lines) trailhead))
+              [[0 2] [0 4]
+               [2 4]
+               [4 6]
+               [5 2] [5 5]
+               [6 0] [6 6]
+               [7 1]])
+         [20, 24, 10, 4, 1, 4, 5, 8, 5])))
+(testing "part 2"
+  (testing "sample"
+    (is (= (solve-day-10-part-2 sample-10-larger-lines)
+           81)))
+  (testing "puzzle"
+    (is (= (solve-day-10-part-2 (puzzle/in-lines 2024 10))
+           1242))))
+
 
 (deftest seq-dissociation
   (testing "dissoc-seq"

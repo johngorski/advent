@@ -51,6 +51,16 @@
                    (trailhead-score topo trailhead))
                  (trailheads topo)))))
 
+(defn trailhead-rating [topo trailhead-loc]
+  (count (trails-at topo trailhead-loc)))
+
+(defn solve-day-10-part-2 [lines]
+  (let [topo (topo-map lines)]
+    (reduce +
+            (map (fn [trailhead]
+                   (trailhead-rating topo trailhead))
+                 (trailheads topo)))))
+
 
 ;; Day 9
 
