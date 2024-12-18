@@ -28,19 +28,20 @@
         s (str n)]
     (map (comp parse-long chop-leading-zeros) [(subs s 0 split-at) (subs s split-at)])))
 
+(defn blink-stone [stone]
+  (cond
+    (zero? stone)
+    [1]
+
+    (even? (digits-in stone))
+    (split-digits stone)
+
+    :else
+    [(* 2024 stone)]
+    ))
+
 (defn blink [stones]
-  (mapcat (fn [stone]
-            (cond
-              (zero? stone)
-              [1]
-
-              (even? (digits-in stone))
-              (split-digits stone)
-
-              :else
-              [(* 2024 stone)]
-              ))
-          stones))
+  (mapcat blink-stone stones))
 
 (defn read-stones [in]
   (map parse-long (string/split in #"\s+")))
@@ -48,12 +49,24 @@
 (defn solve-day-11-part-1 [in]
   (count (first (drop 25 (iterate blink (read-stones in))))))
 
-;; TODO: Clearly naive! We have ~200k after 25 iterations, we can expect many, many more here.
-;; Memoizing a single blink could possibly help quite a bit here. Maybe?
-;; Well, memoizing with a number of remaining iterations is probably the way to go here.
-;; Likely dynamic programming time.
-#_(defn solve-day-11-part-2 [in]
-  (count (first (drop 75 (iterate blink (read-stones in))))))
+(defn blink-entry [[stone n]]
+  (apply merge-with +
+         (map (fn [stone']
+                {stone' n})
+              (blink-stone stone))))
+
+(defn blink-map
+  "Stone position doesn't matter. Let's keep them counted. There should be plenty of repetition."
+  [stone-map]
+  (apply merge-with +
+         (map blink-entry
+              (seq stone-map))))
+
+(defn solve-day-11-part-1-map [in]
+  (reduce + (vals (first (drop 25 (iterate blink-map (frequencies (read-stones in))))))))
+
+(defn solve-day-11-part-2 [in]
+  (reduce + (vals (first (drop 75 (iterate blink-map (frequencies (read-stones in))))))))
 
 
 ;; Day 10
