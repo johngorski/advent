@@ -6,6 +6,60 @@
    [clojure.test :refer :all]))
 
 
+(deftest digit-counter
+  (testing "number"
+    (is (= 3 (digits-in 314)))))
+
+(deftest leading-zeros-chopper
+  (testing "chops leading zeros"
+    (is (= "123" (chop-leading-zeros "00123"))))
+  (testing "keeps trailing zeros"
+    (is (= "100" (chop-leading-zeros "0000100"))))
+  (testing "keeps 0"
+    (is (= "0" (chop-leading-zeros "000000")))
+    (is (= "0" (chop-leading-zeros "0")))))
+
+(def sample-11 "0 1 10 99 999")
+
+(deftest day-11
+  (testing "parsing"
+    (is (= [0 1 10 99 999] (read-stones sample-11))))
+  (testing "blinking"
+    (is (= (blink [0 1 10 99 999])
+           [1 2024 1 0 9 9 2021976]))
+    (is (= (take 7 (iterate blink [125 17]))
+           [[125 17]
+            [253000 1 7]
+            [253 0 2024 14168]
+            [512072 1 20 24 28676032]
+            [512 72 2024 2 0 2 4 2867 6032]
+            [1036288 7 2 20 24 4048 1 4048 8096 28 67 60 32]
+            [2097446912 14168 4048 2 0 2 4 40 48 2024 40 48 80 96 2 8 6 7 6 0 3 2]])))
+  (testing "part 1"
+    (testing "sample"
+      (is (= (solve-day-11-part-1 "125 17")
+             55312))))
+  (testing "puzzle"
+    (is (= (solve-day-11-part-1 (puzzle/in 2024 11))
+           199946)))
+  #_(testing "part 2"
+    (is (= (solve-day-11-part-2 (puzzle/in 2024 11))
+           ))))
+;; (solve-day-11-part-2 (puzzle/in 2024 11))
+(comment
+  (take 10 (iterate blink [0]))
+  '([0]
+    (1)
+    (2024)
+    (20 24)
+    (2 0 2 4)
+    (4048 1 4048 8096)
+    (40 48 2024 40 48 80 96)
+    (4 0 4 8 20 24 4 0 4 8 8 0 9 6)
+    (8096 1 8096 16192 2 0 2 4 8096 1 8096 16192 16192 1 18216 12144)
+    (80 96 2024 80 96 32772608 4048 1 4048 8096 80 96 2024 80 96 32772608 32772608 2024 36869184 24579456)))
+
+
 (def sample-10-lines
   (puzzle/sample-lines
    "0123
