@@ -67,3 +67,20 @@
                 [r c]))))
 
 
+(defn mapg [f grid]
+  (mapv (fn [row]
+          (mapv (fn [cell]
+                  (f cell))
+                row))
+        grid))
+
+
+(defn orthogonal-neighbor-locs
+  "seq of grid's locs orthogonal to input loc"
+  [grid loc]
+  (let [in-bounds? (bounds-checker grid)]
+    (filter in-bounds?
+            [(v+ loc [0 1]) (v+ loc [1 0])
+             (v- loc [0 1]) (v- loc [1 0])])))
+
+

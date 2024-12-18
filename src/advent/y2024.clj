@@ -12,8 +12,47 @@
    [loom.graph :as loom]))
 
 
-;; Day 9
+;; Day 10
 
+(defn topo-map [lines]
+  (grids/mapg parse-long (grids/from-lines lines)))
+
+(defn trailheads [topo]
+  (grids/val-grid-locations 0 topo))
+
+(defn trails-at [topo trailhead-loc]
+  (loop [climb-to 1
+         trails [(list trailhead-loc)]]
+    (if (< 9 climb-to)
+      trails
+      (recur (inc climb-to)
+             (sequence
+              (comp
+               (mapcat (fn [trail]
+                         (map (fn [neighbor]
+                                (conj trail neighbor))
+                              (grids/orthogonal-neighbor-locs topo (first trail)))))
+               (filter (fn [trail]
+                         (= climb-to (grids/cell-at topo (first trail))))))
+              trails)))))
+
+
+(defn trailhead-score [topo trailhead-loc]
+  (count
+   (into #{}
+         (map first)
+         (trails-at topo trailhead-loc))))
+
+
+(defn solve-day-10-part-1 [lines]
+  (let [topo (topo-map lines)]
+    (reduce +
+            (map (fn [trailhead]
+                   (trailhead-score topo trailhead))
+                 (trailheads topo)))))
+
+
+;; Day 9
 
 (defn disk-seq
   "Very easy to second-guess a representation here. But whatever that representation is,
@@ -323,7 +362,7 @@
     [-1  0] [ 0  1]  ;; north to east
     [ 0  1] [ 1  0]  ;; east to south
     [ 1  0] [ 0 -1]  ;; south to west
-    [ 0 -1] [-1  0]));; west to north
+    [ 0 -1] [-1  0]))
 
 (defn turn-guard-right [guard]
   (update guard :direction turn-right))

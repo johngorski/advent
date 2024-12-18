@@ -6,6 +6,67 @@
    [clojure.test :refer :all]))
 
 
+(def sample-10-lines
+  (puzzle/sample-lines
+   "0123
+1234
+8765
+9876"))
+
+(def sample-10-larger-lines
+  (puzzle/sample-lines
+   "89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732"))
+
+(deftest day-10
+  (testing "trailheads"
+    (is (= (trailheads (topo-map sample-10-lines))
+           [[0 0]])))
+  (testing "trails"
+    (testing "run some trails in the sample"
+      (is (= (set (trails-at (topo-map sample-10-lines) [0 0]))
+             '#{([3 0] [3 1] [3 2] [3 3] [2 3] [1 3] [0 3] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [2 2] [2 3] [1 3] [0 3] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [2 1] [2 2] [2 3] [1 3] [0 3] [0 2] [0 1] [0 0])
+                ([3 0] [2 0] [2 1] [2 2] [2 3] [1 3] [0 3] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [3 3] [2 3] [1 3] [1 2] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [2 2] [2 3] [1 3] [1 2] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [2 1] [2 2] [2 3] [1 3] [1 2] [0 2] [0 1] [0 0])
+                ([3 0] [2 0] [2 1] [2 2] [2 3] [1 3] [1 2] [0 2] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [3 3] [2 3] [1 3] [1 2] [1 1] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [2 2] [2 3] [1 3] [1 2] [1 1] [0 1] [0 0])
+                ([3 0] [3 1] [2 1] [2 2] [2 3] [1 3] [1 2] [1 1] [0 1] [0 0])
+                ([3 0] [2 0] [2 1] [2 2] [2 3] [1 3] [1 2] [1 1] [0 1] [0 0])
+                ([3 0] [3 1] [3 2] [3 3] [2 3] [1 3] [1 2] [1 1] [1 0] [0 0])
+                ([3 0] [3 1] [3 2] [2 2] [2 3] [1 3] [1 2] [1 1] [1 0] [0 0])
+                ([3 0] [3 1] [2 1] [2 2] [2 3] [1 3] [1 2] [1 1] [1 0] [0 0])
+                ([3 0] [2 0] [2 1] [2 2] [2 3] [1 3] [1 2] [1 1] [1 0] [0 0])})))
+    (testing "score"
+      (testing "sample trailhead score"
+        (is (= 1 (trailhead-score (topo-map sample-10-lines) [0 0])))))
+    (testing "larger sample trailhead scores"
+      (is (= (map (fn [trailhead]
+                    (trailhead-score (topo-map sample-10-larger-lines) trailhead))
+                  [[0 2] [0 4]
+                   [2 4]
+                   [4 6]
+                   [5 2] [5 5]
+                   [6 0] [6 6]
+                   [7 1]])
+             [5, 6, 5, 3, 1, 3, 5, 3, 5]))))
+  (testing "part 1"
+    (testing "sample"
+      (is (= (solve-day-10-part-1 sample-10-larger-lines))))
+    (testing "puzzle"
+      (is (= (solve-day-10-part-1 (puzzle/in-lines 2024 10))
+             629)))))
+
 (deftest seq-dissociation
   (testing "dissoc-seq"
     (is (= [1 3] (dissoc-seq [1 2 3] 1)))))

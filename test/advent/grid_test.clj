@@ -50,3 +50,19 @@
              [0 1 0]
              [0 0 1]])))))
 
+
+(deftest grid-manipulation
+  (testing "mapg"
+    (testing "leaves rows and cols as vectors"
+      (is (= (mapg parse-long (from-lines (puzzle/sample-lines "123\n456\n789")))
+             [[1 2 3]
+              [4 5 6]
+              [7 8 9]]))
+      (is (vector? (mapg parse-long (from-lines (puzzle/sample-lines "1")))))
+      (is (vector? (first (mapg parse-long (from-lines (puzzle/sample-lines "1")))))))))
+(testing "ortho neighbors"
+  (let [g (from-lines (puzzle/sample-lines "123\n456\n789"))]
+    (is (= #{[0 1] [1 0] [1 2] [2 1]}
+           (set (orthogonal-neighbor-locs g [1 1]))))
+    (is (= #{[0 2] [1 1] [2 2]} (set (orthogonal-neighbor-locs g [1 2]))))
+    (is (= #{[1 0] [2 1]} (set (orthogonal-neighbor-locs g [2 0]))))))
