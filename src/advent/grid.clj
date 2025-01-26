@@ -75,12 +75,15 @@
         grid))
 
 
+(defn orthogonal-locs [loc]
+  [(v+ loc [0 1]) (v+ loc [1 0])
+   (v- loc [0 1]) (v- loc [1 0])])
+
+
 (defn orthogonal-neighbor-locs
   "seq of grid's locs orthogonal to input loc"
   [grid loc]
   (let [in-bounds? (bounds-checker grid)]
-    (filter in-bounds?
-            [(v+ loc [0 1]) (v+ loc [1 0])
-             (v- loc [0 1]) (v- loc [1 0])])))
+    (filter in-bounds? (orthogonal-locs loc))))
 
 

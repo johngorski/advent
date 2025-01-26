@@ -12,6 +12,70 @@
    [loom.graph :as loom]))
 
 
+;; Day 12
+
+(defn garden [lines]
+  (grids/from-lines lines))
+
+(defn flood-fill
+  "Returns the set of locs in grid visited starting from from."
+  [grid from]
+  (let [cell-val (grids/cell-at grid from)
+        fill-loc? (fn [loc]
+                    (= (grids/cell-at grid loc) cell-val))]
+    (loop [to-visit [from]
+           filled #{}
+           visited #{}]
+      (if (empty? to-visit)
+        filled
+        (let [[current & remaining] to-visit]
+          (cond
+            (visited current)
+            (recur remaining filled visited)
+
+            (fill-loc? current)
+            (recur
+             (concat remaining (remove visited (grids/orthogonal-neighbor-locs grid current)))
+             (conj filled current)
+             (conj visited current))
+
+            :else
+            (recur
+             remaining
+             filled
+             (conj visited current))))))))
+
+
+(defn region-reducer [garden]
+  (fn [{:keys [regions visited] :as acc} cell-loc]
+    (if (visited cell-loc)
+      acc
+      (let [new-region (flood-fill garden cell-loc)]
+        {:regions (conj regions new-region)
+         :visited (sets/union visited new-region)})
+      )))
+
+(defn garden-regions [g]
+  (:regions (reduce (region-reducer g) {:regions [] :visited #{}} (cell-locs g))))
+
+(defn area [region-locs]
+  (count region-locs))
+
+(defn perimeter [region-locs]
+  (count
+   (mapcat
+    (fn [loc]
+      (remove region-locs (grids/orthogonal-locs loc)))
+    region-locs)))
+
+(defn region-price [region-locs]
+  (* (area region-locs) (perimeter region-locs)))
+
+
+(defn solve-day-12-part-1 [lines]
+  (reduce + (map region-price (garden-regions (garden lines)))))
+
+
 ;; Day 11
 
 (defn digits-in [n]

@@ -6,6 +6,58 @@
    [clojure.test :refer :all]))
 
 
+(def sample-12
+  (puzzle/sample-lines
+   "AAAA
+BBCD
+BBCC
+EEEC"))
+
+(def sample-12-larger
+  (puzzle/sample-lines
+   "RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE"))
+
+(deftest flood-fill-tests
+  (testing "example regions"
+    (is (= (flood-fill sample-12 [0 0])
+           #{[0 0] [0 3] [0 2] [0 1]}))
+    (is (= (flood-fill sample-12 [1 0])
+           #{[1 0] [1 1] [2 0] [2 1]}))
+    (is (= (flood-fill sample-12 [1 2])
+           #{[2 2] [2 3] [3 3] [1 2]}))
+    (is (= (flood-fill sample-12 [1 3])
+           #{[1 3]}))
+    (is (= (flood-fill sample-12 [3 0])
+           #{[3 0] [3 1] [3 2]}))))
+
+(deftest day-12
+  (testing "regions"
+    (is (= (garden-regions (garden sample-12))
+           [#{[0 0] [0 3] [0 2] [0 1]}
+            #{[1 0] [1 1] [2 0] [2 1]}
+            #{[2 2] [2 3] [3 3] [1 2]}
+            #{[1 3]}
+            #{[3 0] [3 1] [3 2]}])))
+  (testing "perimeter"
+    (is (= (map perimeter (garden-regions (garden sample-12)))
+           '(10 8 10 4 8))))
+  (testing "part 1"
+    (testing "samples"
+      (is (= (solve-day-12-part-1 sample-12) 140))
+      (is (= (solve-day-12-part-1 sample-12-larger) 1930))))
+  (testing "puzzle"
+    (is (= (solve-day-12-part-1 (puzzle/in-lines 2024 12)) 1361494))))
+
+
 (deftest digit-counter
   (testing "number"
     (is (= 3 (digits-in 314)))))
