@@ -10,6 +10,8 @@
    [instaparse.core :as insta]
    ))
 
+(defn in-string [day]
+  (slurp (io/resource (str "2025/" day ".txt"))))
 
 (defn in-lines [day]
   (string/split-lines (slurp (io/resource (str "2025/" day ".txt")))))
@@ -119,6 +121,122 @@ L82")))
 
 
 ;; Day 2
+
+(def sample-2
+  "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124")
+
+
+(defn first-half [n]
+  (let [s (str n)
+        len (count s)]
+    (and
+     (zero? (rem len 2))
+     (let [half-len (/ len 2)
+           first-half (subs s 0 half-len)]
+       (= s (str first-half first-half))))))
+
+(defn silly?
+  "made only of some sequence of digits repeated twice"
+  [n]
+  (let [s (str n)
+        len (count s)]
+    (and
+     (zero? (rem len 2))
+     (let [half-len (/ len 2)
+           first-half (subs s 0 half-len)]
+       (= s (str first-half first-half))))))
+
+
+(comment
+  (map silly?
+       [55
+        6464
+        123123
+        0101
+        ]))
+
+
+(defn parse-sample-ranges [line]
+  (map (fn [low-high-inclusive]
+         (let [bounds-s (string/split low-high-inclusive #"-")]
+           (map edn/read-string bounds-s)))
+       (string/split line #",")))
+
+(comment
+  (parse-sample-ranges sample-2))
+
+(defn range-numbers [[low high-inclusive]]
+  (range low (inc high-inclusive)))
+
+
+(defn day-2-part-1 [line]
+  (reduce +
+          (sequence
+           (comp
+            (mapcat range-numbers)
+            (filter silly?))
+           (parse-sample-ranges line))))
+
+(comment
+  (day-2-part-1 sample-2)
+  ;; => 1227775554
+
+  (day-2-part-1 (in-string 2))
+  ;; => 22062284697
+
+
+  (apply max (map count (mapcat (fn [r] (map str r)) (parse-sample-ranges sample-2))))
+  ;; => 10
+  (apply max (map count (mapcat (fn [r] (map str r)) (parse-sample-ranges (in-string 2)))))
+  ;; => 10
+  ())
+
+(defn silly-at?
+  "When n is a result of r repetitions of a smaller pattern. (silly? n) is equivalent to (silly-at? n 2)."
+  [n r]
+  (let [s (str n)
+        len (count s)]
+    (and
+     (zero? (rem len r))
+     (let [small-len (/ len r)
+           first-part (subs s 0 small-len)]
+       (= s (apply str (repeat r first-part)))))))
+
+(comment
+  (map (fn [n] (silly-at? n 2))
+       [55
+        6464
+        123123
+        0101
+        ]))
+
+(defn sillier?
+  "When n is the result of repeated letters"
+  [n]
+  (some (fn [r] (silly-at? n r))
+        (range 2 (inc (count (str n))))))
+
+(comment
+  (map sillier?
+       [12341234 123123123 1212121212 1111111]))
+
+(defn day-2-part-2 [line]
+  (reduce +
+          (sequence
+           (comp
+            (mapcat range-numbers)
+            (filter sillier?))
+           (parse-sample-ranges line))))
+
+(comment
+  (day-2-part-2 sample-2)
+  ;; => 4174379265
+
+  (day-2-part-2 (in-string 2))
+  ;; => 46666175279
+  ())
+
+;; Day 3
 
 
 
