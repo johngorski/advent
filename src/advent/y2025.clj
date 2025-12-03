@@ -238,5 +238,95 @@ L82")))
 
 ;; Day 3
 
+(def sample-3
+ "987654321111111
+811111111111119
+234234234234278
+818181911112111")
+
+(defn parse-bank [line]
+  (map (comp edn/read-string str) (seq line)))
+
+(comment
+  (parse-bank "987654321111111")
+
+  (apply max (butlast (parse-bank "987654321111111")))
+
+  (drop 1 (drop-while (fn [d] (not= 9 d)) (parse-bank "987654321111111"))))
+
+
+(defn bank-joltage [bank]
+  (let [high-digit (apply max (butlast bank))
+        low-digit (apply max (rest (drop-while (fn [d]
+                                                   (not= high-digit d))
+                                                 bank)))]
+    (+ (* 10 high-digit) low-digit)))
+
+(defn day-3-1 [lines]
+  (reduce +
+          (map (comp bank-joltage parse-bank) lines)))
+
+(comment
+  (map (comp bank-joltage parse-bank) (string/split-lines sample-3))
+  ;; => (98 89 78 92)
+
+  (day-3-1 (string/split-lines sample-3))
+  ;; => 357
+
+  (day-3-1 (in-lines 3))
+  ;; => 17113
+  ())
+
+
+(defn joltage-digit
+  "10^ith digit of the bank given the passed fragment"
+  [i bank-fragment]
+  (apply max (drop-last i bank-fragment)))
+
+(defn fragment-after
+  "Remaining bank-fragment after we traverse to the fragment digit n"
+  [n bank-fragment]
+  (rest (drop-while (fn [d]
+                      (not= n d))
+                    bank-fragment)))
+
+(defn n-joltage
+  ([n bank] (n-joltage 0 n bank))
+  ([acc n bank]
+   (let [j-d (joltage-digit n bank)
+         acc' (+ acc j-d)]
+     (if (zero? n)
+       acc'
+       (recur (* 10 acc')
+              (dec n)
+              (fragment-after j-d bank))))))
+
+(comment
+  (n-joltage 12 (map (comp edn/read-string str) (seq "234234234234278")))
+  ;;    0000000001111
+  ;;    1234567890123
+  ;; => 4234234234278
+  ;; => 423423423435
+  ;; 434234234278 ;; not quite....
+  (n-joltage 11 (map (comp edn/read-string str) (seq "234234234234278")))
+  ;; => 434234234278
+  ;;  : 434234234278
+  ())
+
+(defn day-3-2 [lines]
+  (reduce +
+          (map (comp (fn [bank] (n-joltage 11 bank)) parse-bank) lines)))
+
+(comment
+  (day-3-2 (string/split-lines sample-3))
+  ;; => 3121910778619
+  ;;  : 3121910778619
+
+  (day-3-2 (in-lines 3))
+  ;; => 169709990062889
+  ())
+
+;; Day 4
+
 
 
