@@ -1,6 +1,6 @@
 (ns advent.y2025
   (:require
-   ;; [advent.grid :as grids]
+   [advent.grid :as grids]
    ;; [advent.puzzle :as puzzle]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -328,5 +328,83 @@ L82")))
 
 ;; Day 4
 
+(def sample-4
+  "..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.")
 
+(def sample-4-grid
+  (grids/grid (string/split-lines sample-4)))
+
+
+(grids/cells-at sample-4-grid
+          (grids/adjacent-neighbor-locs sample-4-grid [0 1]))
+
+
+(def tp-val "@")
+
+(defn tp-locs [grid]
+  (grids/val-grid-locations tp-val grid))
+
+(defn forklift-accessible? [grid tp-loc]
+  (let [adjacent-cells (grids/cells-at grid (grids/adjacent-neighbor-locs grid tp-loc))
+        adjacent-tp-locs (filter (fn [cell]
+                                   (= tp-val cell))
+                                 adjacent-cells)
+        adjacent-tp (count adjacent-tp-locs)]
+    (< adjacent-tp 4)))
+
+
+(defn forklift-accessible-tp [grid]
+  (filter (fn [tp-loc]
+            (forklift-accessible? grid tp-loc))
+          (grids/val-grid-locations tp-val grid)))
+
+(comment
+  (count
+   (forklift-accessible-tp sample-4-grid))
+  ;; => 13
+  ())
+
+;; day 4 part 1
+(comment
+  (count
+   (forklift-accessible-tp (grids/grid (in-lines 4))))
+  ;; => 1372
+  ())
+
+(defn remove-tp [grid locs]
+  (reduce (fn [g loc]
+            (assoc-in g loc "."))
+          grid
+          locs))
+
+(defn inaccessible-tp-locs [grid]
+  (let [remaining-tp-locs (set (tp-locs grid))
+        accessible-tp-locs  (filter (fn [loc] (forklift-accessible? grid loc)) remaining-tp-locs)]
+    (if (empty? accessible-tp-locs)
+      remaining-tp-locs
+      (recur (remove-tp grid accessible-tp-locs)))))
+
+;; (inaccessible-tp-locs sample-4-grid)
+
+(defn tp-count [grid]
+  (count (tp-locs grid)))
+
+(defn day-4-part-2 [grid]
+  (- (tp-count grid) (count (inaccessible-tp-locs grid))))
+
+(comment
+  (day-4-part-2 sample-4-grid)
+  ;; => 43
+  (day-4-part-2 (grids/grid (in-lines 4)))
+  ;; => 7922
+  ())
 

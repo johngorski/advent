@@ -27,6 +27,11 @@
   (let [[r c] location]
     (get-in grid [r c])))
 
+(defn cells-at [grid locations]
+  (map (fn [location]
+         (cell-at grid location))
+       locations))
+
 (defn loc-seq
   [grid start direction]
   (let [in-bounds? (bounds-checker grid)
@@ -85,5 +90,19 @@
   [grid loc]
   (let [in-bounds? (bounds-checker grid)]
     (filter in-bounds? (orthogonal-locs loc))))
+
+
+(defn adjacent-locs [loc]
+  (for [dx [-1 0 1]
+        dy [-1 0 1]
+        :when (not (and (zero? dx) (zero? dy))) ]
+    (v+ loc [dx dy])))
+
+
+(defn adjacent-neighbor-locs
+  "seq of grid's locs orthogonal to input loc"
+  [grid loc]
+  (let [in-bounds? (bounds-checker grid)]
+    (filter in-bounds? (adjacent-locs loc))))
 
 
