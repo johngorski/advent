@@ -408,3 +408,141 @@ L82")))
   ;; => 7922
   ())
 
+;; Day 5
+
+
+(def sample-5-lines
+  (string/split-lines
+   "3-5
+10-14
+16-20
+12-18
+
+1
+5
+8
+11
+17
+32"))
+
+(defn parse-range [line]
+  (let [[lo-s hi-s] (string/split line #"-")]
+    [(edn/read-string lo-s) (edn/read-string hi-s)]))
+
+(comment
+  (parse-range "3-5")
+  ;; => [3 5]
+  ())
+
+(defn parse-id [line]
+  (edn/read-string line))
+
+(defn parse-lines-5 [lines]
+  (let [range-lines (take-while not-empty lines)
+        id-lines (rest (drop-while not-empty lines))]
+    {:ranges (map parse-range range-lines)
+     :ids (map parse-id id-lines)}))
+
+(comment
+  (parse-lines-5 sample-5-lines)
+  ;; => {:ranges ([3 5] [10 14] [16 20] [12 18]), :ids (1 5 8 11 17 32)}
+  ())
+
+(defn inclusive-range-checker [[lo hi]]
+  (fn [n]
+    (<= lo n hi)))
+
+(comment
+  ((inclusive-range-checker [3 5]) 4)
+  ;; => true
+  ((inclusive-range-checker [3 5]) 2)
+  ;; => false
+  ((inclusive-range-checker [3 5]) 6)
+  ;; => false
+  ())
+
+(defn fresh-checker [ranges]
+  (let [any? (complement not-any?)
+        bounds-checkers (map inclusive-range-checker ranges)]
+    (fn [id]
+      (any? (fn [in-bounds?]
+              (in-bounds? id))
+            bounds-checkers))))
+
+(defn day-5a [lines]
+  (let [{:keys [ranges ids]} (parse-lines-5 lines)
+        fresh? (fresh-checker ranges)]
+    (count (filter fresh? ids))))
+
+(comment
+  (day-5a sample-5-lines)
+  ;; => 3
+
+  (day-5a (in-lines 5))
+  ;; => 828
+  ())
+
+
+(defn overlapping-ranges
+  "The old-ranges which overlap with the new range."
+  [old-ranges new-range]
+  (let [[lo-new hi-new] new-range
+        in-new-range? (inclusive-range-checker new-range)
+        overlap? (fn [old-range]
+                   (let [[lo-old hi-old] old-range]
+                     (or (in-new-range? lo-old)
+                         (in-new-range? hi-old)
+                         (let [in-old-range? (inclusive-range-checker old-range)]
+                           (or (in-old-range? lo-new)
+                               (in-old-range? hi-new))))))]
+    (into #{new-range}
+          (filter overlap?)
+          old-ranges)))
+
+
+(defn combined-range
+  "Combines the given ranges into one range. Assumes they overlap."
+  [ranges]
+  [(apply min (map first ranges))
+   (apply max (map second ranges))])
+
+
+(defn absorb-range
+  "Absorbs the new range into the set of disjoint old ranges."
+  [old-ranges new-range]
+  (let [overlapping (overlapping-ranges old-ranges new-range)]
+    (-> old-ranges
+        (sets/difference overlapping)
+        (conj (combined-range overlapping)))))
+
+
+(defn combined-ranges
+  "Set of disjoint inclusive ranges"
+  [ranges]
+  (reduce absorb-range #{} ranges))
+
+
+(defn inclusive-range-size [[lo hi]]
+  (inc (- hi lo)))
+
+(defn day-5b [lines]
+  (->> lines
+       parse-lines-5
+       :ranges
+       combined-ranges
+       (map inclusive-range-size)
+       (reduce +)))
+
+(comment
+  (day-5b sample-5-lines)
+  ;; => 14
+
+  (day-5b (in-lines 5))
+  ;; => 352681648086146
+  ())
+
+
+;; Day 6
+
+
+
