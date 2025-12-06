@@ -544,5 +544,177 @@ L82")))
 
 ;; Day 6
 
+(def sample-6-lines
+  (string/split-lines
+   "123 328  51 64 
+ 45 64  387 23 
+  6 98  215 314
+*   +   *   +  "))
+
+(comment
+  (map (fn [line] (take 20 line)) (in-lines 6))
+  (count (in-lines 6)))
+
+(defn row-numbers [line]
+  (map edn/read-string (string/split (string/trim line) #"\s+")))
+
+(comment
+  (row-numbers (first sample-6-lines))
+  ;; => (123 328 51 64)
+  (row-numbers (last sample-6-lines))
+  ;; => (* + * +)
+  ())
+
+(defn transpose [rows]
+  (apply map vector rows))
+
+
+(defn number-rows [lines]
+  (map row-numbers (butlast lines)))
+
+(comment
+  (transpose (number-rows sample-6-lines))
+  ;; => ([123 45 6] [328 64 98] [51 387 215] [64 23 314])
+  ())
+
+
+(defn operands [lines]
+  (transpose (number-rows lines)))
+
+(comment
+  (operands sample-6-lines)
+  ;; => ([123 45 6] [328 64 98] [51 387 215] [64 23 314])
+  ())
+
+(defn operators [lines]
+  (map {'+ + '* *} (row-numbers (last lines))))
+
+(comment
+  (operators sample-6-lines)
+  ;; => (* + * +)
+  ())
+
+(defn worksheet-solutions [ops args]
+  (map apply ops args))
+
+(comment
+  (worksheet-solutions (operators sample-6-lines) (operands sample-6-lines))
+  ;; => (33210 490 4243455 401)
+  ())
+
+(defn day-6a [lines]
+  (let [[ops args] ((juxt operators operands) lines)]
+    (reduce + (worksheet-solutions ops args))))
+
+(comment
+  (day-6a sample-6-lines)
+  ;; => 4277556
+  ()
+
+  (day-6a (in-lines 6))
+  ;; => 5227286044585
+  ()
+
+  (remove #(= % '(()))
+          (partition-by #(= % ())
+                        (map (fn [num-chars]
+                               (remove (fn [n-char]
+                                         (= \space n-char))
+                                       num-chars))
+                             (reverse (transpose sample-6-lines))))))
+(comment
+  (((\4)
+    (\4 \3 \1)
+    (\6 \2 \3 \+))
+   ((\1 \7 \5)
+    (\5 \8 \1)
+    (\3 \2 \*))
+   ((\8)
+    (\2 \4 \8)
+    (\3 \6 \9 \+))
+   ((\3 \5 \6)
+    (\2 \4)
+    (\1 \*))))
+
+(comment
+  ((\4)
+   (\4 \3 \1)
+   (\6 \2 \3 \+)
+   ()
+   (\1 \7 \5)
+   (\5 \8 \1)
+   (\3 \2 \*)
+   ()
+   (\8)
+   (\2 \4 \8)
+   (\3 \6 \9 \+)
+   ()
+   (\3 \5 \6)
+   (\2 \4)
+   (\1 \*)))
+
+(defn split-problems [lines]
+  (->> (reverse (transpose lines))
+       (map (fn [num-chars]
+              (remove (fn [n-char]
+                        (= \space n-char))
+                      num-chars)))
+       (partition-by #(= % ()))
+       (remove #(= % '(())))))
+
+(comment
+  (split-problems sample-6-lines)
+  (((\4)
+    (\4 \3 \1)
+    (\6 \2 \3 \+))
+   ((\1 \7 \5)
+    (\5 \8 \1)
+    (\3 \2 \*))
+   ((\8)
+    (\2 \4 \8)
+    (\3 \6 \9 \+))
+   ((\3 \5 \6)
+    (\2 \4)
+    (\1 \*))))
+
+(defn problem-operator [problem]
+  (some {\+ + \* *} (apply concat problem)))
+
+#_(problem-operator
+ '((\4)
+   (\4 \3 \1)
+   (\6 \2 \3 \+)))
+;; => #object[clojure.core$_PLUS_ 0x65c868c9 "clojure.core$_PLUS_@65c868c9"]
+
+(defn problem-operands [problem]
+  (->> problem
+       (map (fn [col]
+              (->> col
+                   (filter (set "1234567890"))
+                   (apply str)
+                   edn/read-string)))))
+
+#_(problem-operands
+ '((\4)
+   (\4 \3 \1)
+   (\6 \2 \3 \+)))
+;; => (4 431 623)
+;; (filter (set "1234567890") "h4x0r")
+
+(defn day-6b [lines]
+  (let [problems (split-problems lines)
+        [ops args] ((juxt (partial map problem-operator) (partial map problem-operands)) problems)]
+    (reduce + (worksheet-solutions ops args))))
+
+(comment
+  (day-6b sample-6-lines)
+  ;; => 3263827
+
+  (day-6b (in-lines 6))
+  ;; => 10227753257799
+  ())
+
+
+;; Day 7
 
 
