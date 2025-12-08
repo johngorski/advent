@@ -874,3 +874,133 @@ L82")))
 
 ;; Day 8
 
+(def sample-8-lines
+  (string/split-lines
+   "162,817,812
+57,618,57
+906,360,560
+592,479,940
+352,342,300
+466,668,158
+542,29,236
+431,825,988
+739,650,466
+52,470,668
+216,146,977
+819,987,18
+117,168,530
+805,96,715
+346,949,466
+970,615,88
+941,993,340
+862,61,35
+984,92,344
+425,690,689"))
+
+
+(defn parse-box-position [line]
+  (mapv edn/read-string (string/split line #",")))
+
+(defn displacement [from to]
+  (map - to from))
+
+(defn norm-squared [v]
+  (reduce + (map (fn [x]
+                   (* x x))
+                 v)))
+
+(defn distance-squared [from to]
+  (norm-squared (displacement from to)))
+
+(comment
+  (distance-squared [1 2 3] [4 5 6])
+  ;; => 27
+  (parse-box-position "57,618,57")
+  ;; => [57 618 57]
+  ())
+
+(defn box-distances [positions]
+  (into {}
+        (for [from positions
+              to positions
+              :when (not= from to)]
+          [#{from to} (distance-squared from to)])))
+
+
+;; (box-distances (map parse-box-position sample-8-lines))
+
+
+
+(defn closest-boxes [distances]
+  (map first
+       (sort-by second distances)))
+
+
+(defn create-new-circuit [{:keys [circuits in-circuit next-circuit-id] :as joined} from to]
+  (assoc joined
+         :circuits (assoc circuits next-circuit-id #{from to})
+         :in-circuit (assoc in-circuit
+                            from next-circuit-id
+                            to next-circuit-id)
+         :next-circuit-id (inc next-circuit-id)))
+
+(defn add-to-circuit [{:keys [circuits in-circuit] :as joined} circuit box]
+  (assoc joined
+         :circuits (update circuits circuit conj box)
+         :in-circuit (assoc in-circuit box circuit)))
+
+(defn join-circuits [{:keys [circuits in-circuit] :as joined} circuit-a circuit-b]
+  (let [[replaced-id combined-id] (sort [circuit-a circuit-b])]
+    (assoc joined
+           :circuits (-> circuits
+                         (dissoc replaced-id)
+                         (assoc combined-id (sets/union (circuits circuit-a) (circuits circuit-b))))
+           :in-circuit (reduce (fn [in-circuit' moved-box]
+                                 (assoc in-circuit' moved-box combined-id))
+                               in-circuit
+                               (circuits replaced-id)))))
+
+
+(defn join-boxes
+  "circuits - map from circuit ID to set of connected boxes
+  in-circuit - map from box to circuit ID it's a part of
+  next-circuit-id next unassigned circuit id for use in the above"
+  [{:keys [circuits in-circuit next-circuit-id] :as joined} from to]
+  (let [from-in (in-circuit from)
+        to-in (in-circuit to)]
+    ;; cases:
+    (cond
+      ;; - neither from nor to in a circuit -> create new circuit with next-circuit-id
+      (and (nil? from-in) (nil? to-in))
+      (create-new-circuit joined from to)
+
+      ;; - from and to are in the same circuit -> return joined
+      (= from-in to-in)
+      joined
+
+      ;; - one of from or to is in a circuit -> add the other that circuit
+      (nil? from-in)
+      (add-to-circuit joined to-in from)
+
+      (nil? to-in)
+      (add-to-circuit joined from-in to)
+
+      ;; - from and to are in different circuits -> join the circuits
+      :else ;; (not= from-in to-in)
+      (join-circuits joined from-in to-in))))
+
+
+(defn day-8a [n lines]
+  (let [joined-circuits (reduce (fn [joined connection]
+                                  (let [[from to] (seq connection)]
+                                    (join-boxes joined from to)))
+                                {:circuits {} :in-circuit {} :next-circuit-id 0}
+                                (->> lines
+                                     (map parse-box-position)
+                                     box-distances
+                                     closest-boxes
+                                     (take n)))]
+    joined-circuits))
+
+(day-8a 10 sample-8-lines)
+
