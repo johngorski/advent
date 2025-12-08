@@ -717,4 +717,160 @@ L82")))
 
 ;; Day 7
 
+(def sample-7-lines
+  (string/split-lines
+   ".......S.......
+...............
+.......^.......
+...............
+......^.^......
+...............
+.....^.^.^.....
+...............
+....^.^...^....
+...............
+...^.^...^.^...
+...............
+..^...^.....^..
+...............
+.^.^.^.^.^...^.
+..............."))
+
+
+(comment
+  (string/index-of "banana" \n)
+  ;; => 2
+  (string/index-of "banana" \n 3)
+  ;; => 4
+  (string/index-of "banana" \n 5)
+  ;; => nil
+
+  (string/index-of "banana" "a")
+  ;; => 1
+  (string/index-of "banana" "a" (inc 1))
+  ;; => 3
+  (string/index-of "banana" "a" (inc 3))
+  ;; => 5
+  (string/index-of "banana" "a" (inc 5))
+  ;; => nil
+  (string/index-of "banana" "b" 0)
+  ;; => 0
+  ())
+
+
+(defn splitter-indices
+  ([line] (splitter-indices #{} -1 line))
+  ([found last-found-at line]
+   (if-let [next-found-at (string/index-of line "^" (inc last-found-at))]
+     (recur (conj found next-found-at) next-found-at line)
+     found)))
+
+(comment
+  (splitter-indices "b^n^n^")
+  ;; => #{1 3 5}
+  ())
+
+;; (sets/intersection #{2 3 5 7} (set (filter odd? (range 10))))
+
+
+(defn beam-descends [{:keys [splits beam-indices]} splitter-indices]
+  (let [hit-splitters (sets/intersection beam-indices splitter-indices)
+        new-beams (set (mapcat (juxt dec inc) hit-splitters))]
+    {:splits (+ splits (count hit-splitters))
+     :beam-indices (-> beam-indices
+                       (sets/difference hit-splitters)
+                       (sets/union new-beams))}))
+
+(defn start-beam [line]
+  #{(string/index-of line "S")})
+
+(comment
+  (start-beam (first sample-7-lines))
+  ;; => #{7}
+  ())
+
+
+(defn day-7a [lines]
+  (:splits (reduce beam-descends
+                   {:splits 0
+                    :beam-indices (start-beam (first lines))}
+                   (map splitter-indices (rest lines)))))
+
+(comment
+  (day-7a sample-7-lines)
+
+  (day-7a (in-lines 7))
+  ;; => 1660
+  ()
+
+  (select-keys {1 2 3 4 5 6} #{1 5})
+  ;; => {1 2, 5 6}
+  (select-keys {1 2 3 4 5 6} (seq #{1 5}))
+  ;; => {1 2, 5 6}
+
+
+  (apply dissoc {1 2 3 4 5 6} #{1 5})
+  ;; => {3 4}
+
+  (map identity {1 2 3 4 5 6})
+  ;; => ([1 2] [3 4] [5 6])
+  ())
+
+(defn split-timelines [timelines]
+  (reduce
+   (fn [summed [k v]]
+     (update summed
+             k
+             (fn [u]
+               (+ (or u 0)
+                  v))))
+   {}
+   (mapcat
+    (fn [[k v]]
+      [[(dec k) v]
+       [(inc k) v]])
+    timelines)))
+
+(comment
+  (split-timelines {1 2, 2 4, 3 2})
+  ;; => {0 2, 2 4, 1 4, 3 4, 4 2}
+  (split-timelines {1 1, 2 1, 3 1, 4 1, 5 1})
+  ;; => {0 1, 2 2, 1 1, 3 2, 4 2, 5 1, 6 1}
+  (split-timelines {1 1, 2 1, 3 1, 4 1})
+  ;; => {0 1, 2 2, 1 1, 3 2, 4 1, 5 1}
+  ())
+
+
+(defn beam-timelines
+  [timelines splitter-indices]
+  (let [hit-splitters (sets/intersection (set (keys timelines)) splitter-indices)
+        hit-timelines (select-keys timelines hit-splitters)]
+    (def dbg* {:hit-splitters hit-splitters
+               :hit-timelines hit-timelines
+               :split-timelines split-timelines
+               })
+    (merge-with +
+           (apply dissoc timelines hit-splitters)
+           (split-timelines hit-timelines))))
+
+
+(defn day-7b [lines]
+    (let [timelines (reduce beam-timelines
+                            (into {}
+                                  (map (fn [k] [k 1]))
+                                  (start-beam (first lines)))
+                            (map splitter-indices (rest lines)))]
+      (reduce + (vals timelines))
+      #_timelines
+      ))
+
+
+(comment
+  (day-7b sample-7-lines)
+  ;; => 40
+  (day-7b (in-lines 7))
+  ;; => 305999729392659
+  ())
+
+;; Day 8
 
