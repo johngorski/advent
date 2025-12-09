@@ -1004,3 +1004,55 @@ L82")))
 
 (day-8a 10 sample-8-lines)
 
+
+
+;; Day 9
+
+(def sample-9-lines
+  (string/split-lines
+   "7,1
+11,1
+11,7
+9,7
+9,5
+2,5
+2,3
+7,3"))
+
+(defn parse-red-tile [line]
+  (mapv edn/read-string (string/split line #",")))
+
+(parse-red-tile "7,1")
+;; => [7 1]
+
+(defn rectangle-size
+  "s and t are tile coordinates, size is in area"
+  [s t]
+  (let [[sx sy] s
+        [tx ty] t
+        w (inc (abs (- tx sx)))
+        h (inc (abs (- ty sy)))]
+    (* w h)))
+
+(defn all-rectangles [red-tiles]
+  (into #{}
+        (for [a red-tiles
+              b red-tiles
+              :when (not= a b)]
+          #{a b})))
+
+(defn day-9a [lines]
+  (let [red-tiles (map parse-red-tile lines)]
+    (->> (all-rectangles red-tiles)
+         (map seq)
+         (map (fn [[a b]] (rectangle-size a b)))
+         (reduce max))))
+
+(comment
+  (day-9a sample-9-lines)
+  ;; => 50
+  (day-9a (in-lines 9))
+  ;; => 4752484112
+  ())
+
+
