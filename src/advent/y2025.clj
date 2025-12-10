@@ -1092,3 +1092,193 @@ L82")))
   ())
 
 
+
+;; Day 10
+
+(def sample-10-lines
+  (string/split-lines
+   "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"))
+
+
+(def machine-parser
+  (insta/parser "
+machine = indicator_light_diagram <#'\\s+'> button_schematics <#'\\s+'> joltage_requirements
+
+indicator_light_diagram = <'['> light* <']'>
+
+button_schematics = button_schematic (<#'\\s+'> button_schematic)*
+<button_schematic> = <'('> number_list <')'>
+joltage_requirements = <'{'> number_list <'}'>
+
+<light> = off | on
+off = <'.'>
+on = <'#'>
+
+number_list = number ( <#',\\s*'> number )*
+number = #'\\d+'
+"))
+
+(comment
+  (machine-parser (first sample-10-lines))
+  [:machine
+   [:indicator_light_diagram [:light [:off]] [:light [:on]] [:light [:on]] [:light [:off]]]
+   [:button_schematic [:number_list [:number "3"]]]
+   [:button_schematic [:number_list [:number "1"] [:number "3"]]]
+   [:button_schematic [:number_list [:number "2"]]]
+   [:button_schematic [:number_list [:number "2"] [:number "3"]]]
+   [:button_schematic [:number_list [:number "0"] [:number "2"]]]
+   [:button_schematic [:number_list [:number "0"] [:number "1"]]]
+   [:joltage_requirements [:number_list [:number "3"] [:number "5"] [:number "4"] [:number "7"]]]]
+  ())
+
+
+(defn parse-machine [line]
+  (insta/transform
+   {:number edn/read-string
+    :number_list vector
+    :off (fn [] false)
+    :on (fn [] true)
+    :indicator_light_diagram vector
+    :button_schematics vector
+    :joltage_requirements vec
+    :machine (fn [goal buttons joltages] {:goal goal, :buttons buttons :joltages joltages})
+    }
+   (machine-parser line)))
+
+
+(comment
+  (parse-machine (first sample-10-lines))
+  {:goal [false true true false]
+   :buttons [[3] [1 3] [2] [2 3] [0 2] [0 1]]
+   :joltages [3 5 4 7]}
+  ()
+
+  (update [true true true] 1 not)
+  ;; => [true false true]
+  ())
+
+(defn make-button [wiring]
+  (apply comp (map (fn [toggle-idx]
+                     (fn [prev-wiring]
+                       (update prev-wiring toggle-idx not)))
+                   wiring)))
+
+(comment
+  ((make-button [1 3]) [false false false false])
+  ;; => [false true false true]
+  ())
+
+;; This is where being fluent in a BFS library would pay off
+;; BFS sequence starts without any buttons pressed
+;; Button presses for each unpressed button are enqueued with the current light state
+
+(defn press-one-more
+  "All successors of the pressed boolean vector where one false entry has flipped to true."
+  [pressed]
+  (sequence
+   (comp
+    (filter (fn [idx]
+              (not (pressed idx))))
+    (map (fn [idx]
+           (assoc pressed idx true))))
+   (range (count pressed))))
+
+(comment
+  (press-one-more [false true false])
+  ;; => ([true true false] [false true true])
+  (press-one-more [true true true])
+  ;; => ()
+  ())
+
+(defn pressed-indices
+  "lazy seq of button indices pressed"
+  [pressed]
+  (filter (fn [idx]
+            (get pressed idx))
+          (range (count pressed))))
+
+(defn first-pressed-idx
+  [pressed]
+  (first (pressed-indices pressed)))
+
+(defn press-one-fewer
+  "pressed's predecessor. An arbitrary one, based on un-pressing a pressed button."
+  [pressed]
+  (when-let [idx (first-pressed-idx pressed)]
+    (assoc pressed idx false)))
+
+(comment
+  (press-one-fewer [false false false]) ;; expect: nil
+  ;; => nil
+  (press-one-fewer [false true false]) ;; expect: all false
+  ;; => [false false false]
+  (press-one-fewer [true true false]) ;; expect: one true
+  ;; => [false true false]
+  (press-one-fewer [false true true]) ;; expect: one true
+  ;; => [false false true]
+  (press-one-fewer [true true true]) ;; expect: two true
+  ;; => [false true true]
+  ())
+
+;; (assoc [0 1] 1 3)
+;; ([1 2] 0)
+
+(defn button-solution
+  [goal buttons]
+  (let [none-pressed (vec (repeat (count buttons) false))
+        all-dark (vec (repeat (count goal) false))
+        visit (fn [visited current]
+                (let [first-button-idx (first-pressed-idx current)
+                      one-fewer-button (assoc current first-button-idx false)
+                      prev-lights (get visited one-fewer-button)]
+                  ((buttons first-button-idx) prev-lights)))]
+    (loop [visited {none-pressed all-dark} ;; map from pressed state to lights it yields
+           to-visit (press-one-more none-pressed)]
+      (let [visiting (map (fn [pressing]
+                            [pressing (visit visited pressing)])
+                          to-visit)]
+        (if-let [found (first (filter (fn [[pressing lit-up]]
+                                        (= goal lit-up))
+                                      visiting))]
+          (pressed-indices (first found))
+          (recur (into visited visiting)
+                 (into #{}
+                       (comp
+                        (map first)
+                        (mapcat press-one-more))
+                       visiting)))))))
+
+(defn solve-machine [{:keys [goal buttons] :as machine}]
+  (button-solution goal (mapv make-button buttons)))
+
+(comment
+  (solve-machine (parse-machine (first sample-10-lines)))
+  ;; => (1 3)
+
+  (map (comp solve-machine parse-machine) sample-10-lines)
+  ;; => ((1 3) (2 3 4) (1 2))
+  ())
+
+(defn day-10a [lines]
+  (reduce + (map (comp count solve-machine parse-machine) lines)))
+
+(comment
+  (day-10a sample-10-lines)
+  ;; => 7
+
+  (day-10a (in-lines 10))
+  ;; => 401
+  ())
+
+;; Dynamic programming will be key in part 2 as well.
+;; As before, we start with a table of all joltage configurations reachable from n-1 button presses.
+;; Then, as before, we try each button, filtering out any busted joltages anywhere.
+;; For an optimization I missed in part 1, only recur with exactly n-1 button presses, rather than
+;; all <n button presses.
+
+;; Here, it's probably also enough to proceed with the joltages reachable after n-1 button presses,
+;; since there's no need to optimize by avoiding pushing the same button multiple times in a row.
+
+
