@@ -845,10 +845,6 @@ L82")))
   [timelines splitter-indices]
   (let [hit-splitters (sets/intersection (set (keys timelines)) splitter-indices)
         hit-timelines (select-keys timelines hit-splitters)]
-    (def dbg* {:hit-splitters hit-splitters
-               :hit-timelines hit-timelines
-               :split-timelines split-timelines
-               })
     (merge-with +
            (apply dissoc timelines hit-splitters)
            (split-timelines hit-timelines))))
@@ -989,21 +985,61 @@ L82")))
       :else ;; (not= from-in to-in)
       (join-circuits joined from-in to-in))))
 
-
 (defn day-8a [n lines]
-  (let [joined-circuits (reduce (fn [joined connection]
-                                  (let [[from to] (seq connection)]
-                                    (join-boxes joined from to)))
-                                {:circuits {} :in-circuit {} :next-circuit-id 0}
-                                (->> lines
-                                     (map parse-box-position)
-                                     box-distances
-                                     closest-boxes
-                                     (take n)))]
-    joined-circuits))
+  (let [{:keys [circuits]} (reduce (fn [joined connection]
+                                     (let [[from to] (seq connection)]
+                                       (join-boxes joined from to)))
+                                   {:circuits {} :in-circuit {} :next-circuit-id 0}
+                                   (->> lines
+                                        (map parse-box-position)
+                                        box-distances
+                                        closest-boxes
+                                        (take n)))]
+    (->> circuits
+         (map (fn [[_ circuit]] (count circuit)))
+         (sort-by -)
+         (take 3)
+         (apply *))))
 
-(day-8a 10 sample-8-lines)
+(comment
+  (day-8a 10 sample-8-lines)
+  ;; => 40
 
+  (day-8a 1000 (in-lines 8))
+  ;; => 135169
+  ())
+
+;; Bed time. For part 2:
+;; - keep list of all boxes?
+;; - check that cardinality of :in-circuit matches size of junction box list
+;; - check that all values in :in-circuit map are the same
+;; - track the last connected pair of junction boxes
+
+(defn day-8b [lines]
+  (let [closest-connections (->> lines
+                                 (map parse-box-position)
+                                 box-distances
+                                 closest-boxes)
+        num-boxes (count lines)
+        all-connected? (fn [{:keys [in-circuit] :as joined}]
+                         (and (= num-boxes (count in-circuit))
+                              (apply = (vals in-circuit))))]
+    (loop [joined {:circuits {} :in-circuit {} :next-circuit-id 0}
+           [connecting & closest-remaining-connections] closest-connections]
+      (if (all-connected? joined)
+        (apply * (map first (:last-connected joined)))
+        (let [[from to] (seq connecting)]
+          (recur (-> joined
+                     (join-boxes from to)
+                     (assoc :last-connected connecting))
+                 closest-remaining-connections))))))
+
+(comment
+  (day-8b sample-8-lines)
+  ;; => 25272
+  (day-8b (in-lines 8))
+  ;; => 302133440
+  ())
 
 
 ;; Day 9
