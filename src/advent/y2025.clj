@@ -1022,8 +1022,10 @@ L82")))
 (defn parse-red-tile [line]
   (mapv edn/read-string (string/split line #",")))
 
-(parse-red-tile "7,1")
-;; => [7 1]
+(comment
+  (parse-red-tile "7,1")
+  ;; => [7 1]
+  ())
 
 (defn rectangle-size
   "s and t are tile coordinates, size is in area"
@@ -1055,4 +1057,163 @@ L82")))
   ;; => 4752484112
   ())
 
+(defn segment-orientation [[from to]]
+  (let [[from-x from-y] from
+        [to-x to-y] to]
+    (cond
+      (= from to)
+      :error-identical-tiles
+
+      (= from-y to-y)
+      :horizontal
+
+      (= from-x to-x)
+      :vertical
+
+      :else
+      :error-diagonal-tiles)))
+
+(defn segment [from to]
+  [from to])
+
+(defn add-segment [segments segment]
+  (update segments (segment-orientation segment) conj segment))
+
+(defn segments [red-tiles]
+  (partition 2 1 (concat red-tiles [(first red-tiles)])))
+
+(comment
+  (group-by segment-orientation
+            (segments (map parse-red-tile sample-9-lines))))
+
+(defn segment-left-of? [vertical-segment tile]
+  (let [[[x from-y] [_ to-y]] vertical-segment
+        top (max from-y to-y)
+        bottom (min from-y to-y)
+        [tile-x tile-y] tile]
+    (and (<= bottom tile-y top)
+         (<= x tile-x))))
+
+(defn segment-right-of? [vertical-segment tile]
+  (let [[[x from-y] [_ to-y]] vertical-segment
+        top (max from-y to-y)
+        bottom (min from-y to-y)
+        [tile-x tile-y] tile]
+    (and (<= bottom tile-y top)
+         (<= tile-x x))))
+
+(defn segment-above? [horizontal-segment tile]
+  (let [[[from-x y] [to-x _]] horizontal-segment
+        left (min from-x to-x)
+        right (max from-x to-x)
+        [tile-x tile-y] tile]
+    (and (<= left tile-x right)
+         (<= tile-y y))))
+
+(defn segment-below? [horizontal-segment tile]
+  (let [[[from-x y] [to-x _]] horizontal-segment
+        left (min from-x to-x)
+        right (max from-x to-x)
+        [tile-x tile-y] tile]
+    (and (<= left tile-x right)
+         (<= y tile-y))))
+
+(defn on-segment? [segment tile]
+  (let [[[from-x from-y] [to-x to-y]] segment
+        left (min from-x to-x)
+        right (max from-x to-x)
+        top (max from-y to-y)
+        bottom (min from-y to-y)
+        [x y] tile]
+    (and (<= left x right)
+         (<= bottom y top))))
+
+(defn on-path? [segments tile]
+  (loop [remaining-segments segments]
+    (if (empty? remaining-segments)
+      false
+      (or (on-segment? (first remaining-segments) tile)
+          (recur (rest remaining-segments))))))
+
+(defn tile-inside? [segments tile]
+  ;; (let [{:keys [horizontal vertical]} segments])
+  (or (on-path? segments tile)
+      (and
+       (odd? (count (filter (fn [horizontal-segment]
+                              (segment-above? horizontal-segment tile))
+                            segments #_horizontal)))
+       (odd? (count (filter (fn [horizontal-segment]
+                              (segment-below? horizontal-segment tile))
+                            segments #_horizontal)))
+       (odd? (count (filter (fn [vertical-segment]
+                              (segment-left-of? vertical-segment tile))
+                            segments #_vertical)))
+       (odd? (count (filter (fn [vertical-segment]
+                              (segment-right-of? vertical-segment tile))
+                            segments #_vertical))))))
+
+(let [segments #_(group-by segment-orientation) (segments (map parse-red-tile sample-9-lines))]
+  (reduce
+   (fn [grid tile]
+     (assoc-in grid tile 1))
+   [[0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    [0 0 0 0 0 0 0 0 0 0 0 0 0 0]]
+   (for [x (range 12)
+         y (range 12)
+         :when (tile-inside? segments [x y])]
+     [y x])))
+[[0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+ [0 0 0 0 0 0 0 1 1 1 1 1 0 0]
+ [0 0 0 0 0 0 0 1 1 1 1 1 0 0]
+ [0 0 1 1 1 1 1 1 1 1 1 1 0 0]
+ [0 0 1 1 1 1 1 1 1 1 1 1 0 0]
+ [0 0 1 1 1 1 1 1 1 1 1 1 0 0]
+ [0 0 0 0 0 0 0 0 0 1 1 1 0 0]
+ [0 0 0 0 0 0 0 0 0 1 1 1 0 0]
+ [0 0 0 0 0 0 0 0 0 0 0 0 0 0]]
+
+
+(defn green-corners?
+  "Check the rectangle's opposite corners to see whether they're in the given segments"
+  [segments rectangle]
+  (let [[[rx1 ry1] [rx2 ry2]] (seq rectangle)]
+    (and (tile-inside? segments [rx1 ry2])
+         (tile-inside? segments [rx2 ry1]))))
+
+
+(let [red-tiles (map parse-red-tile sample-9-lines)
+      segments (segments red-tiles)]
+  (->> (all-rectangles red-tiles)
+       (filter (fn [rectangle] (green-corners? segments rectangle)))
+       (map seq)
+       (sort-by (fn [[a b]] (- (rectangle-size a b))))
+       ))
+
+(defn day-9b [lines]
+  (apply rectangle-size
+         (let [red-tiles (map parse-red-tile lines)
+               segments (segments red-tiles)]
+           (->> (all-rectangles red-tiles)
+                (filter (fn [rectangle] (green-corners? segments rectangle)))
+                (map seq)
+                (sort-by (fn [[a b]] (- (rectangle-size a b))))
+                first
+                ))))
+
+(comment
+  (day-9b sample-9-lines)
+  ;; => 24
+  (day-9b (in-lines 9))
+  ;; => 4623743592
+  ;;    too high
+  ;;    so, no gimmes. We'll have to get deeper in.
+  ;;    a more efficient filter would really help, too.
+  ())
 
